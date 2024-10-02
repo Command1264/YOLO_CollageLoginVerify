@@ -1,0 +1,8 @@
+TestData/
+debug/
+output/
+dataSet/
+__pycache__/
+yoloCore/
+TestDataStorage/
+.git

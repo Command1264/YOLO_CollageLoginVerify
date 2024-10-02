@@ -1,0 +1,5 @@
+# cd D:\Code\python\collageLogin
+# yolo detect train data=digit_captcha.v14i.yolov11/data.yaml model=yolov10x.pt epochs=30 batch=8 imgsz=640 device=0
+
+cd D:\Code\python\collageLogin
+yolo detect train data=numbers.v1i.yolov11/data.yaml model=yolov10n.pt epochs=30 device=0
