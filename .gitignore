@@ -1,8 +1,11 @@
-TestData/
+TrainingAndTestData/
 debug/
 output/
 dataSet/
 __pycache__/
 yoloCore/
-TestDataStorage/
+TrainingAndTestDataStorage/
 .git
+runs/
+test/
+yoloSuccessCore/
