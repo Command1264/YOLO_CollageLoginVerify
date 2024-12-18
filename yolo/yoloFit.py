@@ -21,7 +21,7 @@ if (__name__ == "__main__"):
     valDir = valDir.replace(f"%i%", str(i))
 
     # 載入模型
-    model = YOLO("./yoloCore/yolov8n.pt")
+    model = YOLO("yoloCore/yolov8n.pt")
 
     # 訓練模型
     train_results = model.train(
