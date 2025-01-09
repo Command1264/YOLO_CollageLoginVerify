@@ -2,8 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import json, os, re
 from urllib import parse
-
-from requests import Response
+from dotenv import load_dotenv
 
 from CYUTLoginVerifyModel import CYUTLoginVerifyModel
 
@@ -31,23 +30,45 @@ class CYUTLogin:
     cookies = {}
 
     account_file_path = f"account.json"
-    account = {
-        "account": "",
-        "password": ""
-    }
+    account: dict[str: str | None]
 
     login_tmp_cookie = None
     img_url = None
-
-    model = CYUTLoginVerifyModel("../yolo/yoloSuccessCore/YOLO11x-google-best.pt")
-
-    try_count = 3
-
-    log = True
     login_success = False
 
-    def __init__(self):
+    log: bool
+    verbose: bool
+    try_count: int
+    model: CYUTLoginVerifyModel
+
+    def __init__(
+            self,
+            log: bool = True,
+            verbose: bool = False,
+            try_count: int = 3,
+            model_path: str = "../yolo/yoloSuccessCore/YOLO11x-google-best.pt",
+    ):
+        self.log = log
+        self.verbose = verbose
+        self.try_count = try_count
+        self.model = CYUTLoginVerifyModel(model_path, self.verbose)
+
         if self.log: print(f"{self.__class_name} __init__")
+
+        # 載入區域環境變數
+        load_dotenv()
+        # 從環境變數載入帳號密碼
+        self.account = {
+            "account": os.getenv("account", None),
+            "password": os.getenv("password", None)
+        }
+
+        # 檢查登入帳號密碼
+        for key, value in self.account.items():
+            if (value is None) or (value == ""):
+                raise Exception(
+                    f"{self.__class_name} {key} is None or empty, please check environment variables!"
+                )
 
         # 讀取初始資料
         self.load_account()
@@ -131,9 +152,9 @@ class CYUTLogin:
             cookies = self.cookies,
             show = False,
             save = False,
-            verbose = True,
+            verbose = self.verbose,
             # project = output_date_time_path,
-            log = True
+            log = self.log
         )
 
         # Body
@@ -270,7 +291,7 @@ class CYUTLogin:
             data: dict = None,
             status_code: int = 200,
 
-    ) -> Response | None:
+    ) -> requests.Response | None:
         if self.log: print(f"{self.__class_name} __location_request")
 
         if headers is None: headers = self.headers

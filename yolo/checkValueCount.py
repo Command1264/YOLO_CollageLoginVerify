@@ -2,9 +2,9 @@ import json
 
 
 if __name__ == '__main__':
-    with open('./testModel/test1-YOLO11X-google-best.pt/ans.json', 'r') as f:
+    with open('./testModel/test1-YOLO11x-google-best.pt/ans.json', 'r') as f:
         data = json.load(f)
-    # with open('./testModel/test1-YOLO11X-google-best.pt/human_ans.json', 'r') as f:
+    # with open('./testModel/test1-YOLO11x-google-best.pt/human_ans.json', 'r') as f:
     #     data = json.load(f)
 
     data_count_dict= {}
@@ -20,3 +20,4 @@ if __name__ == '__main__':
         data_count_dict,
         indent=4
     ))
+    print(f"type count: {len(data_count_dict)}")

@@ -1,6 +1,6 @@
 from ultralytics import YOLO
 import numpy as np
-import os, shutil
+import os
 import cv2 as cv
 import requests
 from io import BytesIO
@@ -10,22 +10,28 @@ from PIL import Image
 def create_directory(path):
     os.makedirs(path, exist_ok=True)
 
+def calculate_area_with_xyxy(xyxy: list[float | int]) -> float:
+    return calculate_area(abs(xyxy[2] - xyxy[0]), abs(xyxy[3] - xyxy[1]))
 
-def calculate_distance_square(lst1, lst2):
-    __sum = 1
-    for i in range(min(len(lst1), len(lst2))):
-        __sum += ((lst1[i] - lst2[i]) ** 2)
+def calculate_area(w: float | int, h: float | int) -> float:
+    return w * h
+
+def calculate_distance_square(ps1: list[float | int], ps2: list[float | int]) -> float:
+    if len(ps1) != len(ps2): return -1
+    __sum = 0
+    for p1, p2 in zip(ps1, ps2):
+        __sum += ((p1 - p2) ** 2)
     return __sum
 
 
-def calculate_distance(lst1, lst2):
-    return calculate_distance_square(lst1, lst2) ** 0.5
+def calculate_distance(ps1: list[float | int], ps2: list[float | int]) -> float:
+    return calculate_distance_square(ps1, ps2) ** 0.5
 
 
 def combine_numbers(numbers_lst: list) -> str:
     return "".join([num[0] for num in numbers_lst])
 
-def sharpen(img: np.ndarray, sigma: int = 25):
+def sharpen(img: np.ndarray, sigma: int = 25) -> np.ndarray:
     # sigma = 5、15、25
     blur_img = cv.GaussianBlur(img, (0, 0), sigma)
     usm = cv.addWeighted(img, 1.5, blur_img, -0.5, 0)
@@ -90,14 +96,22 @@ def result_numbers_filter(numbers_lst: list, limit_distance: float = 30.0) -> li
 class CYUTLoginVerifyModel:
     __model = None
     imgSize = [640, 640]
+    __class_name = "CYUTLoginVerifyModel"
 
-    def __init__(self, model_path: str = "./yoloSuccessCore/YOLO11n-google-best.pt"):
+    def __init__(
+        self,
+        model_path: str = "./yoloSuccessCore/YOLO11n-google-best.pt",
+        verbose: bool = False,
+        log: bool = False
+    ):
         self.set_model_path(model_path)
+        self.verbose = verbose
 
     def set_model_path(self, model_path: str):
         if os.path.isfile(model_path):
             self.__model = YOLO(model_path)
         else:
+            print("找不到模型，將使用 yolo11n")
             self.__model = YOLO("yolo11n.pt")
 
     def url_gif_get_verify_code(
@@ -106,9 +120,8 @@ class CYUTLoginVerifyModel:
             cookies: dict = {},
             show: bool = False,
             save: bool = True,
-            verbose: bool = True,
+            verbose: bool | None = None,
             project: str = "./runs/",
-            name: str = "predict",
             output_raw_image_name: str = f"./image-%i%-raw.png",
             output_identify_image_name: str = f"./image-%i%.jpg",
             log: bool = False,
@@ -117,6 +130,7 @@ class CYUTLoginVerifyModel:
             url,
             cookies = cookies
         )
+        if verbose is None: verbose = self.verbose
 
         # 如果成功
         if r.status_code != 200:
@@ -162,7 +176,6 @@ class CYUTLoginVerifyModel:
             save = save,
             verbose = verbose,
             project = project,
-            name = name,
             output_raw_image_name = output_raw_image_name,
             output_identify_image_name = output_identify_image_name,
             log = log,
@@ -174,9 +187,9 @@ class CYUTLoginVerifyModel:
             source : np.ndarray,
             show: bool = False,
             save: bool = True,
-            verbose: bool = True,
+            verbose: bool | None = None,
             project: str = "./runs/",
-            name: str = "predict",
+            # name: str = "predict",
             output_raw_image_name: str = f"./image-%i%-raw.png",
             output_identify_image_name: str = f"./image-%i%.jpg",
             log: bool = False,
@@ -185,16 +198,18 @@ class CYUTLoginVerifyModel:
         output_raw_image_path = f"{project}{output_raw_image_name}"
         output_identify_image_path = f"{project}{output_identify_image_name}"
 
+        if verbose is None: verbose = self.verbose
+
         # print(source.shape)
         # cv.imshow("img", source)
         # cv.imshow("newImg", sharpen(source))
-        results = self.__model(
+        results = self.__model.predict(
             source = source,
             show = show,
-            save = save,
+            save = False,
             verbose = verbose,
             project = project,
-            name = name
+            # name = name
         )
 
         # 如果沒結果，就回傳空
@@ -214,24 +229,57 @@ class CYUTLoginVerifyModel:
 
                 # 確定類別至少有一個
                 # 只要有判斷出數值，那就送入 resultNumbersFilter() 濾波
-                if len(cls) >= 1:
-                    numbers_lst.append([name_dir[cls[0].item()], box.xyxy[0].tolist(), confidence.tolist()])
+                if len(cls) < 1: continue
+                xywhn = box.xywhn[0].tolist()
+                # 避免模型抓出太大或是太小的數字(把雜訊當數字)
+                if (
+                        0.18 < xywhn[2] or
+                        xywhn[2] < 0.09 or
+                        0.30 < xywhn[3] or
+                        xywhn[3] < 0.17
+                ): continue
+
+                # xywh = box.xywh[0].tolist()
+                # xywhn = box.xywhn[0].tolist()
+                # self.widths.append(xywh[2])
+                # self.heights.append(xywh[3])
+                # self.widths_percent.append(xywhn[2])
+                # self.heights_percent.append(xywhn[3])
+                numbers_lst.append([
+                    name_dir[cls[0].item()],
+                    box.xyxy[0].tolist(),
+                    # xywhn,
+                    confidence.tolist()
+                ])
 
             verify_code = combine_numbers(result_numbers_filter(numbers_lst))
             if log: print(f"verifyCode: {verify_code}")
 
             if save:
                 # 輸出圖片
+
+                # 创建多级目录
+                os.makedirs(project, exist_ok=True)
+
+                # 生成原始圖片
                 output_raw_image = output_raw_image_path.replace(f"%i%", f"{verify_code}")
                 if not os.path.isfile(output_raw_image):
                     cv.imwrite(output_raw_image, result.orig_img)
 
-                # 將判斷圖片移到正確的位置，並將資料夾刪除
+                # 生成判斷圖片
                 identified_image = output_identify_image_path.replace(f"%i%", f"{verify_code}")
-                if not os.path.isfile(identified_image):
-                    shutil.copy2(f"{project}/{name}/image0.jpg", identified_image)
+                drawn_image = result.plot()
 
-                shutil.rmtree(f"{project}/{name}")
+                # 将绘制的图像转换为 PIL 格式并保存
+                img = Image.fromarray(drawn_image)
+                img.save(identified_image)
 
             return verify_code
 
+
+    # def get_max_min_size(self):
+    #     return ([max(self.widths), min(self.widths)],
+    #             [max(self.heights), min(self.heights)],
+    #             [max(self.widths_percent), min(self.widths_percent)],
+    #             [max(self.heights_percent), min(self.heights_percent)],
+    #     )

@@ -10,7 +10,8 @@ yolo/yoloSuccessCore/
 yolo/TestData/
 yolo/testModel/
 .git
+.idea
 test/
-#account.json
-#cyutLoginCookies.json
+.env
 *.json
+教學

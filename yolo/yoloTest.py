@@ -16,8 +16,17 @@ def list_files_with_parent(directory):
     #     file_name = os.path.basename(file_path)
     #     print(f"File: {file_name}, Parent Directory: {parent_dir}")
 
+# model_name = "YOLO11x-google-best.pt"
+# model_name = "YOLO11x-google-1-best.pt"
+model_name = "YOLO11x-self-best.pt"
+# model_name = "YOLO11x-0.1%Train-best.pt"
+# model_name = "YOLO11x-1%Train-best.pt"
+# model_name = "YOLO11x-10%Train-best.pt"
+
+model_path = f"./yoloSuccessCore/{model_name}"
+
 if __name__ == "__main__":
-    model = CYUTLoginVerifyModel("./yoloSuccessCore/YOLO11x-google-best.pt")
+    model = CYUTLoginVerifyModel(model_path, verbose = False)
     parent_dir = "./TestData/"
     file_paths = list_files_with_parent(parent_dir)
     test_model_ans_dict = {}
@@ -27,14 +36,16 @@ if __name__ == "__main__":
 
         verify_code = model.get_verify_code(
             cv.imread(file_path, 1),
-            project = f"./testModel/test1-YOLO11X-google-best.pt/{file_name_without_ext}",
+            project = f"./testModel/{model_name}/{file_name_without_ext}",
+            verbose = False
         )
         test_model_ans_dict[file_name] = verify_code
         # break
-    print(test_model_ans_dict)
-    with open("./testModel/test1-YOLO11X-google-best.pt/ans.json", "w", encoding="utf-8") as f:
+    # print(test_model_ans_dict)
+    # print(f"sizes: {model.get_max_min_size()}")
+    # if not os.path.exists(f"./testModel/{model_name}/ans.json"):
+    with open(f"./testModel/{model_name}/ans.json", "w", encoding="utf-8") as f:
         json.dump(test_model_ans_dict, f, indent=4, ensure_ascii=False)
 
         # print(os.getcwd())
-    pass
 

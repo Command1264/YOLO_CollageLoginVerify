@@ -8,8 +8,8 @@ import json, os
 
 model_ans_index = 0
 
-model_file_path = "./testModel/test1-YOLO11X-google-best.pt/ans.json"
-human_file_path = "./testModel/test1-YOLO11X-google-best.pt/human_ans.json"
+model_file_path = "testModel/YOLO11x-google-best.pt/ans.json"
+human_file_path = "./testModel/human_ans.json"
 
 edit_flag = False
 
@@ -54,7 +54,7 @@ def get_file_name_number(file_name):
 
 def init_page():
     global show_image_file_name, all_data_index, all_data_list
-    show_image_file_name = not_tagged_list[0]
+    show_image_file_name = not_tagged_list[0] if not_tagged_list else all_data_list[-1]
     tmp_index = all_data_list.index(show_image_file_name)
     if tmp_index == -1: return
     all_data_index.set(tmp_index)
@@ -72,7 +72,7 @@ def change_display():
 
 
     not_ans_count = len(all_data_list) - len(human_ans_dict)
-    percent = int((len(human_ans_dict)) / len(all_data_list) * 100)
+    percent = round((len(human_ans_dict) / len(all_data_list)) * 100, 2)
     progress_bar_percent_str.set(f"{percent}%")
     progress_bar['value'] = percent
 
@@ -91,7 +91,8 @@ def change_display():
     yes_button.config(
         state =
             tk.NORMAL
-            if human_ans.get() == "" or len(human_ans.get().strip()) != 4
+            if ((len(human_ans.get().strip()) < 4) and
+                len(ans) == 4)
             else
             tk.DISABLED
     )
