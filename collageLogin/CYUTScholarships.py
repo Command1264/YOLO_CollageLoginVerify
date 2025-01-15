@@ -18,17 +18,11 @@ from pygsheets import DataRange, HorizontalAlignment, FormatType, Worksheet, Val
 from pygsheets.client import Client
 
 from CYUTLogin import CYUTLogin
+from GoogleClientAuth import GoogleClientAuth
 
 
 def calculate_column_width(text):
     return sum(2 if unicodedata.east_asian_width(t) in "FWA" else 1 for t in text)
-    # # 計算中文字符數
-    # chinese_char_count = len(re.findall(r'[\u4e00-\u9fff]', text))
-    # # 計算英文字符數
-    # non_chinese_char_count = len(text) - chinese_char_count
-    # # 假設英文字符寬度為 1，中文字符寬度為 2
-    # total_width = non_chinese_char_count * 1 + chinese_char_count * 2
-    # return total_width
 
 
 def calculate_column_width_with_title(data_frame: DataFrame) -> int:
@@ -40,10 +34,6 @@ class CYUTScholarships(CYUTLogin):
     log: bool = False
 
     __gc: Client
-    # __creds:
-    # __sheet_url: str | None = None
-    # __email: str = None
-
     __spreadsheet: Worksheet | None = None
 
     @staticmethod
@@ -52,58 +42,29 @@ class CYUTScholarships(CYUTLogin):
 
     def __init__(
             self,
-            client_secret_file: str = "./OAuthCredentials.json",
-            service_file: str = "./ServiceAccountCredentials.json",
-            # sheet_url: str = "https://docs.google.com/spreadsheets/d/1N5ujLg2NE8JRJPXhGIDFXfSBRp_q0s0XFeDjIiJsp-w/edit?usp=sharing",
+            client_secret_file: str | None = None,
+            token_file: str | None = None,
             log: bool = False
     ) -> None:
         super().__init__(log = log)
         if self.log: f"{self.__get_class_name()} __init__"
+        if client_secret_file is None:
+            client_secret_file = "./OAuthCredentials.json"
 
         # 載入區域環境變數
         load_dotenv()
-        # 從環境變數取得email(RIP)
-        # self.__email = os.getenv("email")
 
         # 初始化
         self.log = log
 
         # 取得 Google OAuth 驗證
-        # self.__gc = pygsheets.authorize(service_file = service_file)
-        self.__gc = pygsheets.authorize(
-            client_secret = client_secret_file,
-        )
+        gc_auth = GoogleClientAuth(client_secret_file, token_file)
+        self.__gc = gc_auth.authorize_pygsheets()
 
-
-    # def authenticate_oauth(self, oauth_file):
-    #     # 設定權限範圍
-    #     SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
-    #
-    #     creds = None
-    #     # 檢查是否已經保存了有效的憑證
-    #     if os.path.exists("token.pickle"):
-    #         with open("token.pickle", "rb") as token:
-    #             creds = pickle.load(token)
-    #
-    #     # 如果憑證無效或不存在，就讓用戶進行登錄
-    #     if not creds or not creds.valid:
-    #         if creds and creds.expired and creds.refresh_token:
-    #             creds.refresh(Request())
-    #         else:
-    #             flow = InstalledAppFlow.from_client_secrets_file(
-    #                 oauth_file, SCOPES)
-    #             creds = flow.run_local_server(port=0)
-    #
-    #         # 保存憑證，以便下次使用
-    #         with open("token.pickle", "wb") as token:
-    #             pickle.dump(creds, token)
-    #
-    #     return creds
-
-    def load_scholarships(self) -> bool:
+    def load_scholarships(self) -> (bool, bool):
         if self.log: print(f"{self.__get_class_name()} load_scholarships")
 
-        if not self.login_success: return False
+        if not self.login_success: return False, False
 
         url = f"{self.system_domain}/ST0075/"
         response = requests.get(
@@ -112,7 +73,7 @@ class CYUTScholarships(CYUTLogin):
             cookies = self.cookies,
             allow_redirects = False,
         )
-        if response.status_code != 200: return False
+        if response.status_code != 200: return False, False
 
         # 讀取網頁的 html，並將其轉成 BS4 物件
         html_bs = BeautifulSoup(response.text, "html.parser")
@@ -193,24 +154,15 @@ class CYUTScholarships(CYUTLogin):
 
             for j in range(0, sub_df.shape[0]):
                 link = sub_df.iloc[j, 1]
-                if link and link != "nan":
+                if link and link.lower() != "nan":
                     text = f'=HYPERLINK("{link}", "{name if (j == 0) else "LINK"}")'
                     general_table_df.iloc[i, 3 + j] = text
 
-        success, has_update = self.__write_google_sheet(
+        return self.__write_google_sheet(
             general_table_df,
             general_table_df_max_length,
             sheet_title="學校資料"
         )
-        if success:
-            if has_update:
-                if self.log: print("Updated successful!")
-            else:
-                if self.log: print("No updates!")
-        else:
-            if self.log: print("Updated failed!")
-
-        return True
 
     def __check_google_sheet(
             self,
@@ -439,4 +391,11 @@ class CYUTScholarships(CYUTLogin):
 
 if __name__ == "__main__":
     cyut_scholarships = CYUTScholarships(log = True)
-    cyut_scholarships.load_scholarships()
+    success, has_update = cyut_scholarships.load_scholarships()
+    if success:
+        if has_update:
+            print("Updated successful!")
+        else:
+            print("No updates!")
+    else:
+        print("Updated failed!")
