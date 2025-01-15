@@ -39,6 +39,7 @@ if __name__ == "__main__":
             project = f"./testModel/{model_name}/{file_name_without_ext}",
             verbose = False
         )
+        if verify_code is None: verify_code = str(verify_code)
         test_model_ans_dict[file_name] = verify_code
         # break
     # print(test_model_ans_dict)

@@ -28,20 +28,16 @@
    - 確保 Python 環境已安裝，並配置相關依賴。
    - 安裝 YOLOv11 模型所需的庫與工具。
 
-2. **數據準備**：
-   - 收集並標記驗證碼數據，使用 [CYUT Login Verify Code Dataset](https://app.roboflow.com/numbers-3sc8q/cyutloginverifycode/1) 作為訓練數據。
+2. **建立憑證**：
+   - 根據 [pygsheets 憑證教學](https://pygsheets.readthedocs.io/en/stable/authorization.html#oauth-credentials) 設置 Google API 憑證。
+   - 確保下載的憑證文件與專案目錄一致。
 
-3. **模型訓練與推論**：
-   - 使用 YOLO 格式的數據集進行模型訓練。
-   - 將訓練好的模型應用於驗證碼辨識。
-
-4. **自動化腳本運行**：
+3. **自動化腳本運行**：
    - 配置學生資訊系統帳號資訊。
    - 運行腳本完成自動登入操作。
 
 ---
 
 ## 未來展望
-- 優化辨識模型的準確性與速度。
 - 增加更多自動化功能，如批量資料提取與分析。
 - 探索基於雲端的即時服務，進一步提高便利性。
