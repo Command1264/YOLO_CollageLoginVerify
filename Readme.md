@@ -5,13 +5,13 @@
 ---
 
 ## 功能模組
-### [驗證碼辨識](readme/Readme-CollageLogin.md)
+### [驗證碼辨識](readme/Readme-YOLO.md)
 使用自動化技術辨識學生資訊系統中的驗證碼，提升操作效率。
 
 ### [學生資訊系統操作](readme/Readme-CollageLogin.md)
 模擬登入與自動化操作學生資訊系統，實現資料查詢與管理。
 
-### [Telegram Bot 推送](readme/Readme-CollageLogin.md)
+### [Telegram Bot 推送](readme/Readme-Telegram.md)
 將學生資訊系統中的重要通知透過 Telegram Bot 實時推送至用戶。
 
 ---
