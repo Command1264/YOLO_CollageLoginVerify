@@ -36,6 +36,8 @@ class CYUTScholarships(CYUTLogin):
     __gc: Client
     __spreadsheet: Worksheet | None = None
 
+    __can_use: bool = True
+
     @staticmethod
     def __get_class_name():
         return CYUTScholarships.__name__
@@ -49,7 +51,7 @@ class CYUTScholarships(CYUTLogin):
         super().__init__(log = log)
         if self.log: f"{self.__get_class_name()} __init__"
         if client_secret_file is None:
-            client_secret_file = "./OAuthCredentials.json"
+            client_secret_file = "-OAuthCredentials.json"
 
         # 載入區域環境變數
         load_dotenv()
@@ -60,8 +62,13 @@ class CYUTScholarships(CYUTLogin):
         # 取得 Google OAuth 驗證
         gc_auth = GoogleClientAuth(client_secret_file, token_file)
         self.__gc = gc_auth.authorize_pygsheets()
+        if self.__gc is None:
+            self.__can_use = False
+
 
     def load_scholarships(self) -> (bool, bool):
+        if not self.__can_use:
+            return False, False
         if self.log: print(f"{self.__get_class_name()} load_scholarships")
 
         if not self.login_success: return False, False
@@ -300,7 +307,9 @@ class CYUTScholarships(CYUTLogin):
         return True, True
 
 
-    def load_apply_scholarships(self) -> bool:
+    def load_apply_scholarships(self) -> (bool, bool):
+        if not self.__can_use:
+            return False, False
         if self.log: print(f"{self.__get_class_name()} load_apply_scholarships")
         if not self.login_success: return False
 
@@ -311,6 +320,8 @@ class CYUTScholarships(CYUTLogin):
             self,
             spreadsheet: Worksheet
     ) -> bool:
+        if not self.__can_use:
+            return False
         if self.log: print(f"{self.__get_class_name()} delete_google_spreadsheet")
 
         if spreadsheet is None:
@@ -399,3 +410,4 @@ if __name__ == "__main__":
             print("No updates!")
     else:
         print("Updated failed!")
+    cyut_scholarships.load_apply_scholarships()
