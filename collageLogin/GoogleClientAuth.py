@@ -8,6 +8,10 @@ from google.oauth2.credentials import Credentials
 import pygsheets
 from pygsheets.client import Client
 
+class CertificateNotEnabledException(Exception):
+    def __init__(self, message: str):
+        super().__init__(message)
+
 class GoogleClientAuth:
     oauth_file: str | None
     token_file: str | None
