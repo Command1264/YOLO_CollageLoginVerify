@@ -18,7 +18,7 @@ from pygsheets import DataRange, HorizontalAlignment, FormatType, Worksheet, Val
 from pygsheets.client import Client
 
 from CYUTLogin import CYUTLogin
-from GoogleClientAuth import GoogleClientAuth
+from GoogleClientAuth import GoogleClientAuth, CertificateNotEnabledException
 
 
 def calculate_column_width(text):
@@ -41,6 +41,18 @@ class CYUTScholarships(CYUTLogin):
     @staticmethod
     def __get_class_name():
         return CYUTScholarships.__name__
+
+    def check_certificate_enabled(self):
+        """
+        檢查 Google 憑證是否已啟用。
+
+        參數: 無
+
+        可能的例外:
+        CertificateNotEnabledException: 如果憑證沒有正確啟用，則引發此例外。
+        """
+        if not self.__can_use:
+            raise CertificateNotEnabledException("Google 憑證沒有被正確啟用！")
 
     def __init__(
             self,
@@ -67,8 +79,8 @@ class CYUTScholarships(CYUTLogin):
 
 
     def load_scholarships(self) -> (bool, bool):
-        if not self.__can_use:
-            return False, False
+        self.check_certificate_enabled()
+
         if self.log: print(f"{self.__get_class_name()} load_scholarships")
 
         if not self.login_success: return False, False
@@ -177,6 +189,8 @@ class CYUTScholarships(CYUTLogin):
             spreadsheet = None,
             sheet_title: str = "學校資料",
     ) -> (bool, Worksheet | None):
+        self.check_certificate_enabled()
+
         if self.log: print(f"{self.__get_class_name()} __check_google_sheet")
 
         if spreadsheet is None or table_df is None: return False, None
@@ -214,6 +228,8 @@ class CYUTScholarships(CYUTLogin):
             spreadsheet = None,
             sheet_title: str = "學校資料"
     ) -> (bool, bool):
+        self.check_certificate_enabled()
+
         if self.log: print(f"{self.__get_class_name()} __write_google_sheet")
 
         if spreadsheet is None:
@@ -308,8 +324,8 @@ class CYUTScholarships(CYUTLogin):
 
 
     def load_apply_scholarships(self) -> (bool, bool):
-        if not self.__can_use:
-            return False, False
+        self.check_certificate_enabled()
+
         if self.log: print(f"{self.__get_class_name()} load_apply_scholarships")
         if not self.login_success: return False
 
@@ -360,8 +376,8 @@ class CYUTScholarships(CYUTLogin):
             self,
             spreadsheet: Worksheet
     ) -> bool:
-        if not self.__can_use:
-            return False
+        self.check_certificate_enabled()
+
         if self.log: print(f"{self.__get_class_name()} delete_google_spreadsheet")
 
         if spreadsheet is None:
@@ -380,6 +396,8 @@ class CYUTScholarships(CYUTLogin):
             academic_year_value: str,
             spread_sheet_name: str = "%academic_year% 獎學金"
     ) -> Worksheet:
+        self.check_certificate_enabled()
+
         if self.log: print(f"{self.__get_class_name()} __get_create_google_spreadsheet")
         if len(academic_year_value) != 4:
             raise ValueError("選擇數值不是 4 位數")
@@ -410,7 +428,7 @@ class CYUTScholarships(CYUTLogin):
         if spreadsheet is None:
             raise FileNotFoundError("找不到 Google 表單")
         # print(spreadsheet.permissions)
-        
+
         # if self.__email is not None:
         #     has_writer_permission = False
         #     for permission in spreadsheet.permissions:
