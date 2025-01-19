@@ -36,8 +36,6 @@ class CYUTScholarships(CYUTLogin):
     __gc: Client
     __spreadsheet: Worksheet | None = None
 
-    __can_use: bool = True
-
     @staticmethod
     def __get_class_name():
         return CYUTScholarships.__name__
@@ -74,8 +72,6 @@ class CYUTScholarships(CYUTLogin):
         # 取得 Google OAuth 驗證
         gc_auth = GoogleClientAuth(client_secret_file, token_file)
         self.__gc = gc_auth.authorize_pygsheets()
-        if self.__gc is None:
-            self.__can_use = False
 
 
     def load_scholarships(self) -> (bool, bool):
