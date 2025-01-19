@@ -51,7 +51,7 @@ class CYUTScholarships(CYUTLogin):
         可能的例外:
         CertificateNotEnabledException: 如果憑證沒有正確啟用，則引發此例外。
         """
-        if not self.__can_use:
+        if self.__gc is None:
             raise CertificateNotEnabledException("Google 憑證沒有被正確啟用！")
 
     def __init__(
