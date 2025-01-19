@@ -314,6 +314,46 @@ class CYUTScholarships(CYUTLogin):
         if not self.login_success: return False
 
         url = f"{self.system_domain}/ST0075/Apply"
+        response = requests.get(
+            url,
+            headers = self.headers,
+            cookies = self.cookies,
+            allow_redirects = False,
+        )
+        if response.status_code != 200: return False, False
+
+        # 讀取網頁的 html，並將其轉成 BS4 物件
+        html_bs = BeautifulSoup(response.text, "html.parser")
+        # 讀取獎助學金的資料部分
+        scholarships_table = html_bs.select("#contentTable")
+        scholarships_table_str = str(scholarships_table)
+
+        academic_year_select = html_bs.find("select", {
+            "id": "acy",
+            "name": "acy",
+        })
+        academic_year_option = academic_year_select.find("option", {
+            "selected": "selected",
+        })
+
+        academic_year_value = academic_year_option["value"]
+        self.__spreadsheet = self.__get_create_google_spreadsheet(academic_year_value)
+
+        # 將主資料表獨立出來
+        # 並做一些資料預處理
+        general_table_df = pd.read_html(
+            StringIO(scholarships_table_str)
+        )[0]
+
+        # 根據編號進行排序
+        general_table_df.sort_values(
+            by = "申請項目",
+            ascending = True,
+            # by = ["申請期限", "編號-獎學金名稱"],
+            # ascending = [True, True],
+            inplace = True
+        )
+        general_table_df.to_excel("test.xlsx", index = False, header = True)
         return True
 
     def delete_google_spreadsheet(
