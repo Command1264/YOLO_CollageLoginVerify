@@ -4,7 +4,9 @@ import webbrowser
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
+
 import pygsheets
+from pygsheets.client import Client
 
 class GoogleClientAuth:
     oauth_file: str | None
@@ -51,7 +53,7 @@ class GoogleClientAuth:
 
         return creds
 
-    def authorize_pygsheets(self) -> pygsheets.client.Client | None:
+    def authorize_pygsheets(self) -> Client | None:
         # 使用憑證進行 pygsheets 授權
         gc = None
         creds = self.authenticate_oauth()
