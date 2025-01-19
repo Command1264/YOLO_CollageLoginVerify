@@ -110,7 +110,6 @@ class CYUTScholarships(CYUTLogin):
 
         academic_year_value = academic_year_option["value"]
         self.__spreadsheet = self.__get_create_google_spreadsheet(academic_year_value)
-        # print(self.__spreadsheet)
 
         # 將主資料表獨立出來
         # 並做一些資料預處理
@@ -133,8 +132,6 @@ class CYUTScholarships(CYUTLogin):
         general_table_df.sort_values(
             by = "編號-獎學金名稱",
             ascending = True,
-            # by = ["申請期限", "編號-獎學金名稱"],
-            # ascending = [True, True],
             inplace = True
         )
         # 重新更新 index，必須在 sort 後面做，不然沒用
@@ -365,8 +362,6 @@ class CYUTScholarships(CYUTLogin):
         general_table_df.sort_values(
             by = "申請項目",
             ascending = True,
-            # by = ["申請期限", "編號-獎學金名稱"],
-            # ascending = [True, True],
             inplace = True
         )
         general_table_df.to_excel("test.xlsx", index = False, header = True)
@@ -392,7 +387,6 @@ class CYUTScholarships(CYUTLogin):
 
     def __get_create_google_spreadsheet(
             self,
-            # spread_sheet_name: str,
             academic_year_value: str,
             spread_sheet_name: str = "%academic_year% 獎學金"
     ) -> Worksheet:
@@ -406,8 +400,7 @@ class CYUTScholarships(CYUTLogin):
         spread_sheet_name = spread_sheet_name.replace("%academic_year%", academic_year)
 
         query = "mimeType='application/vnd.google-apps.spreadsheet' and trashed = false"
-        # query = "mimeType='application/vnd.google-apps.spreadsheet' or sharedWithMe"
-        # sheet_dict = self.__gc.drive.list(q = query, fields = "files(id, name)")
+
         sheet_dict = self.__gc.drive.list(q = query)
         sheet_names = [file for file in sheet_dict if file["name"] == spread_sheet_name]
 
@@ -418,42 +411,14 @@ class CYUTScholarships(CYUTLogin):
             case 1:
                 spreadsheet = self.__gc.open_by_key(sheet_names[0]["id"])
             case _:
-                # if self.__email is not None:
-                #     for sheet in sheet_names:
-                #         self.__gc.open_by_key(sheet["id"]) \
-                #             .share(self.__email, role='writer')
                 raise FileExistsError("存在多個相同名稱 Google 表單，請檢查")
-                # return None
 
         if spreadsheet is None:
             raise FileNotFoundError("找不到 Google 表單")
-        # print(spreadsheet.permissions)
-
-        # if self.__email is not None:
-        #     has_writer_permission = False
-        #     for permission in spreadsheet.permissions:
-        #         # print(permission)
-        #         if permission.get("emailAddress", "") == self.__email and \
-        #             permission.get("role", "") =="owner":
-        #             has_writer_permission = True
-        #             break
-        #
-        #     if not has_writer_permission:
-        #         # 需要先把帳戶改成編輯者，才能升級至擁有者
-        #         spreadsheet.share(self.__email, role = "writer")
-        #         self.__gc.drive.create_permission(
-        #             file_id = spreadsheet.id,
-        #             role = 'owner',
-        #             type = 'user',
-        #             emailAddress = self.__email,
-        #             transferOwnership = True  # 這裡必須設置為 True
-        #         )
         return spreadsheet
 
     def test(self):
         if self.log: print(f"{self.__get_class_name()} test")
-        # spreadsheet = self.__get_create_google_spreadsheet("1131")
-        # print(self.delete_google_spreadsheet(spreadsheet))
 
 
 
