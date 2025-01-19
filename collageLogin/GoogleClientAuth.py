@@ -1,4 +1,6 @@
 import os
+import webbrowser
+
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
@@ -34,6 +36,9 @@ class GoogleClientAuth:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
+                if not os.path.isfile(self.oauth_file):
+                    webbrowser.open("https://pygsheets.readthedocs.io/en/stable/authorization.html#oauth-credentials")
+                    return None
                 flow = InstalledAppFlow.from_client_secrets_file(
                     self.oauth_file,
                     self.scopes
@@ -46,8 +51,9 @@ class GoogleClientAuth:
 
         return creds
 
-    def authorize_pygsheets(self):
+    def authorize_pygsheets(self) -> pygsheets.client.Client | None:
         # 使用憑證進行 pygsheets 授權
+        gc = None
         creds = self.authenticate_oauth()
-        gc = pygsheets.authorize(custom_credentials = creds)
+        if creds is not None: gc = pygsheets.authorize(custom_credentials = creds)
         return gc
