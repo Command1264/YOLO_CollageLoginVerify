@@ -14,11 +14,12 @@ from io import StringIO
 from tqdm import tqdm
 
 import pygsheets
-from pygsheets import DataRange, HorizontalAlignment, FormatType, Worksheet, ValueRenderOption
+from pygsheets import DataRange, HorizontalAlignment, FormatType, Worksheet, ValueRenderOption, Spreadsheet
 from pygsheets.client import Client
 
 from CYUTLogin import CYUTLogin
 from GoogleClientAuth import GoogleClientAuth, CertificateNotEnabledException
+from GoogleSheetCellFormat import GoogleSheetFormat, SheetCellFormat, SheetNumberFormat
 
 
 def calculate_column_width(text):
@@ -139,9 +140,10 @@ class CYUTScholarships(CYUTLogin):
 
         # 先在這裡拿到各自 column 裡面最長字串的長度，不然超連結蓋過去就取不出來了
         general_table_df_max_length = [
-            calculate_column_width_with_title(general_table_df_with_title.iloc[:, i])
-            for i in range(3, 7)
+            calculate_column_width_with_title(general_table_df_with_title.iloc[:, i]) if (3 <= i < 7) else 0 \
+            for i in range(7)
         ]
+
 
         # 要在字數統計後，再將數值轉整數，不然無法統計數字
         general_table_df["金額"] = general_table_df["金額"].astype(dtype=np.int64)
@@ -171,15 +173,15 @@ class CYUTScholarships(CYUTLogin):
 
         return self.__write_google_sheet(
             general_table_df,
-            general_table_df_max_length,
             spreadsheet = spreadsheet,
+            # general_table_df_max_length,
             sheet_title = "校內外獎助學金"
         )
 
     def __check_google_sheet(
             self,
             table_df: DataFrame = None,
-            spreadsheet = None,
+            spreadsheet: Spreadsheet | None = None,
             sheet_title: str = "學校資料",
     ) -> (bool, Worksheet | None):
         self.check_certificate_enabled()
@@ -217,8 +219,8 @@ class CYUTScholarships(CYUTLogin):
     def __write_google_sheet(
             self,
             table_df: DataFrame,
-            table_df_max_length,
-            spreadsheet = None,
+            spreadsheet: Spreadsheet,
+            sheet_format: GoogleSheetFormat,
             sheet_title: str = "學校資料"
     ) -> (bool, bool):
         self.check_certificate_enabled()
@@ -268,8 +270,8 @@ class CYUTScholarships(CYUTLogin):
         x = 0.70
         font_size = 16
         # 設定欄位寬度
-        for i in range(4, 8):
-            worksheet.adjust_column_width(i, pixel_size = int(table_df_max_length[i - 4] * font_size * x))
+        for i, width in enumerate(sheet_format.column_width):
+            worksheet.adjust_column_width(i, pixel_size = int(width * font_size * x))
 
         # 將所有資料都先條成 fontSize 16，以及置中
         DataRange(f'A1',
@@ -361,11 +363,18 @@ class CYUTScholarships(CYUTLogin):
             inplace = True
         )
 
+        # return self.__write_google_sheet(
+        #     general_table_df,
+        #     general_table_df_max_length,
+        #     spreadsheet = spreadsheet,
+        #     sheet_title = "個人申請結果"
+        # )
+
         return True
 
     def delete_google_spreadsheet(
             self,
-            spreadsheet: Worksheet
+            spreadsheet: Spreadsheet
     ) -> bool:
         self.check_certificate_enabled()
 
@@ -385,7 +394,7 @@ class CYUTScholarships(CYUTLogin):
             self,
             academic_year_value: str,
             spread_sheet_name: str = "%academic_year% 獎學金"
-    ) -> Worksheet:
+    ) -> Spreadsheet:
         self.check_certificate_enabled()
 
         if self.log: print(f"{self.__get_class_name()} __get_create_google_spreadsheet")
