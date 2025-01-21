@@ -173,7 +173,7 @@ class CYUTScholarships(CYUTLogin):
             general_table_df,
             general_table_df_max_length,
             spreadsheet = spreadsheet,
-            sheet_title = "學校資料"
+            sheet_title = "校內外獎助學金"
         )
 
     def __check_google_sheet(
