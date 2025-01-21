@@ -315,10 +315,11 @@ class CYUTScholarships(CYUTLogin):
         x = 0.70
         font_size = 16 if sheet_format.font_size is None else sheet_format.font_size
         # 設定欄位寬度
-        for i, width in enumerate(sheet_format.column_width):
-            if width > 0:
-                # 因為 adjust_column_width 的初始位置為 1，所以需要加 1
-                worksheet.adjust_column_width(i + 1, pixel_size = int(width * font_size * x))
+        if sheet_format.column_width is not None:
+            for i, width in enumerate(sheet_format.column_width):
+                if width > 0:
+                    # 因為 adjust_column_width 的初始位置為 1，所以需要加 1
+                    worksheet.adjust_column_width(i + 1, pixel_size = int(width * font_size * x))
 
         def set_cells_format(start, end, worksheet, cell_format):
             data_range = DataRange(start = start, end = end, worksheet = worksheet)
@@ -415,9 +416,51 @@ class CYUTScholarships(CYUTLogin):
 
         # return self.__write_google_sheet(
         #     general_table_df,
-        #     general_table_df_max_length,
         #     spreadsheet = spreadsheet,
-        #     sheet_title = "個人申請結果"
+        #     # general_table_df_max_length,
+        #     sheet_format = GoogleSheetFormat(
+        #         column_width = general_table_df_max_length,
+        #         font_size = font_size,
+        #         formats = [
+        #             SheetCellFormat(
+        #                 format_range = "ALL",
+        #                 text_format = {
+        #                     "fontSize": font_size
+        #                 },
+        #                 horizontal_alignment = HorizontalAlignment.CENTER,
+        #             ),
+        #             SheetCellFormat(
+        #                 format_range = "D2:D",
+        #                 text_format = {
+        #                     "fontSize": font_size
+        #                 },
+        #                 horizontal_alignment = HorizontalAlignment.LEFT,
+        #             ),
+        #             SheetCellFormat(
+        #                 format_range = "G2:G",
+        #                 text_format = {
+        #                     "fontSize": font_size
+        #                 },
+        #                 horizontal_alignment = HorizontalAlignment.RIGHT,
+        #                 number_format = SheetNumberFormat(
+        #                     format_type = FormatType.NUMBER,
+        #                     pattern = "#,##0",
+        #                 ),
+        #             ),
+        #             SheetCellFormat(
+        #                 format_range = "F2:F",
+        #                 text_format = {
+        #                     "fontSize": font_size
+        #                 },
+        #                 horizontal_alignment = HorizontalAlignment.CENTER,
+        #                 number_format = SheetNumberFormat(
+        #                     format_type = FormatType.DATE,
+        #                     pattern = "yyyy/MM/dd",
+        #                 ),
+        #             ),
+        #         ]
+        #     ),
+        #     sheet_title = "校內外獎助學金"
         # )
 
         return True
