@@ -25,7 +25,7 @@ from GoogleSheetCellFormat import GoogleSheetFormat, SheetCellFormat, SheetNumbe
 
 
 def calculate_column_width(text):
-    return sum(2 if unicodedata.east_asian_width(t) in "FWA" else 1 for t in text)
+    return sum(2 if unicodedata.east_asian_width(t) in "FWA" else 1 for t in str(text))
 
 
 def calculate_column_width_with_title(data_frame: DataFrame) -> int:
