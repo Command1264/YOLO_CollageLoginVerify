@@ -34,7 +34,6 @@ class CYUTScholarships(CYUTLogin):
     log: bool = False
 
     __gc: Client
-    __spreadsheet: Worksheet | None = None
 
     @staticmethod
     def __get_class_name():
@@ -105,7 +104,7 @@ class CYUTScholarships(CYUTLogin):
         })
 
         academic_year_value = academic_year_option["value"]
-        self.__spreadsheet = self.__get_create_google_spreadsheet(academic_year_value)
+        spreadsheet = self.__get_create_google_spreadsheet(academic_year_value)
 
         # 將主資料表獨立出來
         # 並做一些資料預處理
@@ -173,7 +172,8 @@ class CYUTScholarships(CYUTLogin):
         return self.__write_google_sheet(
             general_table_df,
             general_table_df_max_length,
-            sheet_title="學校資料"
+            spreadsheet = spreadsheet,
+            sheet_title = "學校資料"
         )
 
     def __check_google_sheet(
@@ -226,9 +226,9 @@ class CYUTScholarships(CYUTLogin):
         if self.log: print(f"{self.__get_class_name()} __write_google_sheet")
 
         if spreadsheet is None:
-            if self.__spreadsheet is None:
-                return False, False
-            spreadsheet = self.__spreadsheet
+            # if self.__spreadsheet is None:
+            return False, False
+            # spreadsheet = self.__spreadsheet
 
         need_update, worksheet = self.__check_google_sheet(
             table_df,
@@ -346,7 +346,7 @@ class CYUTScholarships(CYUTLogin):
         })
 
         academic_year_value = academic_year_option["value"]
-        self.__spreadsheet = self.__get_create_google_spreadsheet(academic_year_value)
+        spreadsheet = self.__get_create_google_spreadsheet(academic_year_value)
 
         # 將主資料表獨立出來
         # 並做一些資料預處理
