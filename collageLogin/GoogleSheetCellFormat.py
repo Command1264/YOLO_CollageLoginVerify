@@ -32,12 +32,15 @@ class SheetCellFormat:
 
 class GoogleSheetFormat:
     column_width: list[int]
+    font_size: int
     formats: list[SheetCellFormat]
 
     def __init__(
-            self,
-            column_width: list[int],
-            formats: list[SheetCellFormat],
+        self,
+        column_width: list[int],
+        font_size: int,
+        formats: list[SheetCellFormat],
     ):
         self.column_width = column_width
+        self.font_size = font_size
         self.formats = formats
