@@ -250,10 +250,11 @@ class CYUTScholarships(CYUTLogin):
                 value_render = ValueRenderOption.FORMULA,
             )
             # 因為使用公式讀取的原因，所以日期需要從 excel 日期轉換成一般日期
-            old_df["申請期限"] = old_df["申請期限"].apply(
-                # timedelta -2 是為了修復 Excel 的 bug
-                lambda __x : (datetime.datetime(1900, 1, 1) + datetime.timedelta(days=__x - 2)).strftime('%Y/%m/%d')
-            )
+            if old_df.get("申請期限") is not None:
+                old_df["申請期限"] = old_df["申請期限"].apply(
+                    # timedelta -2 是為了修復 Excel 的 bug
+                    lambda __x : (datetime.datetime(1900, 1, 1) + datetime.timedelta(days=__x - 2)).strftime('%Y/%m/%d')
+                )
 
         # 如果資料相同，那就不用上傳資料，避免浪費
         if not old_df is None:
@@ -413,57 +414,63 @@ class CYUTScholarships(CYUTLogin):
             ascending = True,
             inplace = True
         )
+        # 重新更新 index，必須在 sort 後面做，不然沒用
+        general_table_df = general_table_df.reset_index(drop = True)
+        # 創一個有 title 的 DataFrame，方便後面做事
+        general_table_df_with_title = \
+            pd.DataFrame(
+                [general_table_df.columns.values.tolist()] + general_table_df.values.tolist()
+            )
 
-        # return self.__write_google_sheet(
-        #     general_table_df,
-        #     spreadsheet = spreadsheet,
-        #     # general_table_df_max_length,
-        #     sheet_format = GoogleSheetFormat(
-        #         column_width = general_table_df_max_length,
-        #         font_size = font_size,
-        #         formats = [
-        #             SheetCellFormat(
-        #                 format_range = "ALL",
-        #                 text_format = {
-        #                     "fontSize": font_size
-        #                 },
-        #                 horizontal_alignment = HorizontalAlignment.CENTER,
-        #             ),
-        #             SheetCellFormat(
-        #                 format_range = "D2:D",
-        #                 text_format = {
-        #                     "fontSize": font_size
-        #                 },
-        #                 horizontal_alignment = HorizontalAlignment.LEFT,
-        #             ),
-        #             SheetCellFormat(
-        #                 format_range = "G2:G",
-        #                 text_format = {
-        #                     "fontSize": font_size
-        #                 },
-        #                 horizontal_alignment = HorizontalAlignment.RIGHT,
-        #                 number_format = SheetNumberFormat(
-        #                     format_type = FormatType.NUMBER,
-        #                     pattern = "#,##0",
-        #                 ),
-        #             ),
-        #             SheetCellFormat(
-        #                 format_range = "F2:F",
-        #                 text_format = {
-        #                     "fontSize": font_size
-        #                 },
-        #                 horizontal_alignment = HorizontalAlignment.CENTER,
-        #                 number_format = SheetNumberFormat(
-        #                     format_type = FormatType.DATE,
-        #                     pattern = "yyyy/MM/dd",
-        #                 ),
-        #             ),
-        #         ]
-        #     ),
-        #     sheet_title = "校內外獎助學金"
-        # )
+        general_table_df["獲獎金額"] = general_table_df["獲獎金額"].fillna("0")
+        # 先在這裡拿到各自 column 裡面最長字串的長度，不然超連結蓋過去就取不出來了
+        general_table_df_max_length = [
+            calculate_column_width_with_title(general_table_df_with_title.iloc[:, i]) if (2 <= i < 7) else 0 \
+            for i in range(7)
+        ]
+        font_size = 16
 
-        return True
+
+        # 要在字數統計後，再將數值轉整數，不然無法統計數字
+        general_table_df["獲獎金額"] = general_table_df["獲獎金額"].astype(dtype = np.int64)
+
+        return self.__write_google_sheet(
+            general_table_df,
+            spreadsheet = spreadsheet,
+            # general_table_df_max_length,
+            sheet_format = GoogleSheetFormat(
+                column_width = general_table_df_max_length,
+                font_size = font_size,
+                formats = [
+                    SheetCellFormat(
+                        format_range = "ALL",
+                        text_format = {
+                            "fontSize": font_size
+                        },
+                        horizontal_alignment = HorizontalAlignment.CENTER,
+                    ),
+                    SheetCellFormat(
+                        format_range = "C2:C",
+                        text_format = {
+                            "fontSize": font_size
+                        },
+                        horizontal_alignment = HorizontalAlignment.LEFT,
+                    ),
+                    SheetCellFormat(
+                        format_range = "E2:E",
+                        text_format = {
+                            "fontSize": font_size
+                        },
+                        horizontal_alignment = HorizontalAlignment.RIGHT,
+                        number_format = SheetNumberFormat(
+                            format_type = FormatType.NUMBER,
+                            pattern = "#,##0",
+                        ),
+                    ),
+                ]
+            ),
+            sheet_title = "個人申請結果"
+        )
 
     def delete_google_spreadsheet(
             self,
@@ -523,12 +530,14 @@ class CYUTScholarships(CYUTLogin):
 
 if __name__ == "__main__":
     cyut_scholarships = CYUTScholarships(log = True)
-    success, has_update = cyut_scholarships.load_scholarships()
-    if success:
-        if has_update:
-            print("Updated successful!")
+    for title, (success, has_update) in [
+        ["校內外獎助學金", cyut_scholarships.load_scholarships()],
+        ["個人申請結果", cyut_scholarships.load_apply_scholarships()],
+    ]:
+        if success:
+            if has_update:
+                print(f"{title} 上傳成功!")
+            else:
+                print(f"{title} 沒有更新。")
         else:
-            print("No updates!")
-    else:
-        print("Updated failed!")
-    cyut_scholarships.load_apply_scholarships()
+            warnings.warn(f"{title} 上傳失敗！！！")
