@@ -1,7 +1,9 @@
+import warnings
+
 import requests
 
 import pandas as pd
-import unicodedata, os
+import unicodedata, os, re
 from dotenv import load_dotenv
 from pandas import DataFrame
 import numpy as np
@@ -61,7 +63,7 @@ class CYUTScholarships(CYUTLogin):
         super().__init__(log = log)
         if self.log: f"{self.__get_class_name()} __init__"
         if client_secret_file is None:
-            client_secret_file = "-OAuthCredentials.json"
+            client_secret_file = "./OAuthCredentials.json"
 
         # 載入區域環境變數
         load_dotenv()
@@ -143,6 +145,7 @@ class CYUTScholarships(CYUTLogin):
             calculate_column_width_with_title(general_table_df_with_title.iloc[:, i]) if (3 <= i < 7) else 0 \
             for i in range(7)
         ]
+        font_size = 16
 
 
         # 要在字數統計後，再將數值轉整數，不然無法統計數字
@@ -175,6 +178,48 @@ class CYUTScholarships(CYUTLogin):
             general_table_df,
             spreadsheet = spreadsheet,
             # general_table_df_max_length,
+            sheet_format = GoogleSheetFormat(
+                column_width = general_table_df_max_length,
+                font_size = font_size,
+                formats = [
+                    SheetCellFormat(
+                        format_range = "ALL",
+                        text_format = {
+                            "fontSize": font_size
+                        },
+                        horizontal_alignment = HorizontalAlignment.CENTER,
+                    ),
+                    SheetCellFormat(
+                        format_range = "D2:D",
+                        text_format = {
+                            "fontSize": font_size
+                        },
+                        horizontal_alignment = HorizontalAlignment.LEFT,
+                    ),
+                    SheetCellFormat(
+                        format_range = "G2:G",
+                        text_format = {
+                            "fontSize": font_size
+                        },
+                        horizontal_alignment = HorizontalAlignment.RIGHT,
+                        number_format = SheetNumberFormat(
+                            format_type = FormatType.NUMBER,
+                            pattern = "#,##0",
+                        ),
+                    ),
+                    SheetCellFormat(
+                        format_range = "F2:F",
+                        text_format = {
+                            "fontSize": font_size
+                        },
+                        horizontal_alignment = HorizontalAlignment.CENTER,
+                        number_format = SheetNumberFormat(
+                            format_type = FormatType.DATE,
+                            pattern = "yyyy/MM/dd",
+                        ),
+                    ),
+                ]
+            ),
             sheet_title = "校內外獎助學金"
         )
 
@@ -234,8 +279,8 @@ class CYUTScholarships(CYUTLogin):
 
         need_update, worksheet = self.__check_google_sheet(
             table_df,
-            spreadsheet= spreadsheet,
-            sheet_title= sheet_title
+            spreadsheet = spreadsheet,
+            sheet_title = sheet_title
         )
         if not need_update:
             return True, False
@@ -268,52 +313,57 @@ class CYUTScholarships(CYUTLogin):
 
 
         x = 0.70
-        font_size = 16
+        font_size = 16 if sheet_format.font_size is None else sheet_format.font_size
         # 設定欄位寬度
         for i, width in enumerate(sheet_format.column_width):
-            worksheet.adjust_column_width(i, pixel_size = int(width * font_size * x))
+            if width > 0:
+                # 因為 adjust_column_width 的初始位置為 1，所以需要加 1
+                worksheet.adjust_column_width(i + 1, pixel_size = int(width * font_size * x))
 
-        # 將所有資料都先條成 fontSize 16，以及置中
-        DataRange(f'A1',
-                  f'{chr(ord("A") + cols - 1)}{rows + 1}',
-                  worksheet=worksheet
-        ).apply_format(
-            pygsheets.Cell('A1')
-                .set_text_format("fontSize", font_size)
-                .set_horizontal_alignment(HorizontalAlignment.CENTER)
-        )
-        # 再將獎學金名稱調整成向左靠齊
-        # 不加 ".set_text_format("fontSize", font_size)"，會出現都變回原本預設的字體大小
-        DataRange(f'D2',
-                  f'D{rows + 1}',
-                  worksheet=worksheet
-        ).apply_format(
-            pygsheets.Cell('D2')
-                .set_text_format("fontSize", font_size)
-                .set_horizontal_alignment(HorizontalAlignment.LEFT)
-        )
-        # 再將金錢調整成向右靠齊，並設定數字格式
-        # 不加 ".set_text_format("fontSize", font_size)"，會出現都變回原本預設的字體大小
-        DataRange(f'G2',
-                  f'G{rows + 1}',
-                  worksheet=worksheet
-        ).apply_format(
-            pygsheets.Cell('G2')
-                .set_text_format("fontSize", font_size)
-                .set_horizontal_alignment(HorizontalAlignment.RIGHT)
-                .set_number_format(format_type = FormatType.NUMBER, pattern = "#,##0")
-        )
-        # 再將日期調整成向右靠齊，並設定日期格式
-        # 不加 ".set_text_format("fontSize", font_size)"，會出現都變回原本預設的字體大小
-        DataRange(f'F2',
-                  f'F{rows + 1}',
-                  worksheet=worksheet
-        ).apply_format(
-            pygsheets.Cell('F2')
-                .set_text_format("fontSize", font_size)
-                .set_horizontal_alignment(HorizontalAlignment.CENTER)
-                .set_number_format(format_type = FormatType.DATE, pattern = "yyyy/MM/dd")
-        )
+        def set_cells_format(start, end, worksheet, cell_format):
+            data_range = DataRange(start = start, end = end, worksheet = worksheet)
+            cell = pygsheets.Cell(start)
+
+            if cell_format.text_format is not None:
+                for key, value in cell_format.text_format.items():
+                    cell.set_text_format(key, value)
+
+            if cell_format.horizontal_alignment is not None:
+                cell.set_horizontal_alignment(cell_format.horizontal_alignment)
+
+            if cell_format.number_format is not None:
+                number_format = cell_format.number_format
+                cell.set_number_format(number_format.format_type, number_format.pattern)
+
+            data_range.apply_format(cell)
+
+        for cell_format in sheet_format.formats:
+            # 先 upper，方便後續辨識
+            cell_format.format_range = cell_format.format_range.upper()
+            format_flag = False
+            start, end = None, None
+
+            # 對應到處理全部
+            if cell_format.format_range == "ALL":
+                start, end = f'A1', f'{chr(ord("A") + cols - 1)}{rows + 1}'
+                format_flag = True
+
+            # 對應到 A3:D10 或是 D2:D10 的場景
+            elif re.fullmatch(r"[A-Z][0-9]+?:[A-Z][0-9]+", cell_format.format_range):
+                start, end = cell_format.format_range.split(":")
+                format_flag = True
+
+            # 對應到 D:D10 或是 D2:D 的場景
+            elif re.fullmatch(r"[A-Z](?:[0-9]+)?:[A-Z](?:[0-9]+)?", cell_format.format_range):
+                start, end = cell_format.format_range.split(":")
+                if re.fullmatch(r"[A-Z]+", start): start = start + "1"
+                if re.fullmatch(r"[A-Z]+", end): end = end + str(rows + 1)
+                format_flag = True
+            else:
+                warnings.warn(f"未知的範圍: {cell_format.format_range}")
+
+            if format_flag:
+                set_cells_format(start, end, worksheet, cell_format)
 
         return True, True
 
