@@ -360,7 +360,7 @@ class CYUTScholarships(CYUTLogin):
             ascending = True,
             inplace = True
         )
-        general_table_df.to_excel("test.xlsx", index = False, header = True)
+
         return True
 
     def delete_google_spreadsheet(
