@@ -44,6 +44,12 @@
 
 ---
 
+## 模型下載
+點擊以下連結下載成功訓練的 YOLO 模型：  
+[YOLO 成功模型下載](https://www.mediafire.com/folder/hr1zchguedu42/yoloSuccessCore)
+
+---
+
 ## 未來展望
 - 增強模型的泛化能力，適應更多場景的驗證碼格式。
 - 探索其他深度學習模型的適用性，如 Transformer 系列。
