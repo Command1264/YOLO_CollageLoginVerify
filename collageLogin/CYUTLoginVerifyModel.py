@@ -144,16 +144,17 @@ class CYUTLoginVerifyModel:
             return ""
 
         # 先將網頁資料轉成 BytesIO
-        gif_bytes_io = BytesIO()
-        gif_bytes_io.write(np.frombuffer(r.content, dtype = np.uint8))
+        with BytesIO() as gif_bytes_io:
+            gif_bytes_io.write(r.content)
+            # gif_bytes_io.write(np.frombuffer(r.content, dtype = np.uint8))
 
-        # 讓 Image 讀取
-        gif_img = Image.open(gif_bytes_io)
+            # 讓 Image 讀取
+            gif_img = Image.open(gif_bytes_io)
         # 將編碼轉成 RGBA (PNG)
-        gif_img.convert("RGBA")
+            gif_img.convert("RGBA")
 
         # 使用 cv2 將灰階轉彩色、讀取並 resize
-        img = cv.cvtColor(np.array(gif_img)[:, :].copy(), cv.COLOR_GRAY2BGR)
+            img = cv.cvtColor(np.array(gif_img)[:, :].copy(), cv.COLOR_GRAY2BGR)
 
         # 檢查圖像是否有效
         if not img.any(): return ""
