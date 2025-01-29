@@ -322,22 +322,6 @@ class CYUTScholarships(CYUTLogin):
                     # 因為 adjust_column_width 的初始位置為 1，所以需要加 1
                     worksheet.adjust_column_width(i + 1, pixel_size = int(width * font_size * x))
 
-        def set_cells_format(start, end, worksheet, cell_format):
-            data_range = DataRange(start = start, end = end, worksheet = worksheet)
-            cell = pygsheets.Cell(start)
-
-            if cell_format.text_format is not None:
-                for key, value in cell_format.text_format.items():
-                    cell.set_text_format(key, value)
-
-            if cell_format.horizontal_alignment is not None:
-                cell.set_horizontal_alignment(cell_format.horizontal_alignment)
-
-            if cell_format.number_format is not None:
-                number_format = cell_format.number_format
-                cell.set_number_format(number_format.format_type, number_format.pattern)
-
-            data_range.apply_format(cell)
 
         for cell_format in sheet_format.formats:
             # 先 upper，方便後續辨識
@@ -361,11 +345,26 @@ class CYUTScholarships(CYUTLogin):
                 if re.fullmatch(r"[A-Z]+", start): start = start + "1"
                 if re.fullmatch(r"[A-Z]+", end): end = end + str(rows + 1)
                 format_flag = True
+
             else:
                 warnings.warn(f"未知的範圍: {cell_format.format_range}")
 
             if format_flag:
-                set_cells_format(start, end, worksheet, cell_format)
+                data_range = DataRange(start=start, end=end, worksheet=worksheet)
+                cell = pygsheets.Cell(start)
+
+                if cell_format.text_format is not None:
+                    for key, value in cell_format.text_format.items():
+                        cell.set_text_format(key, value)
+
+                if cell_format.horizontal_alignment is not None:
+                    cell.set_horizontal_alignment(cell_format.horizontal_alignment)
+
+                if cell_format.number_format is not None:
+                    number_format = cell_format.number_format
+                    cell.set_number_format(number_format.format_type, number_format.pattern)
+
+                data_range.apply_format(cell)
 
         return True, True
 
