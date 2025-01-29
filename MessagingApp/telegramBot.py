@@ -16,7 +16,7 @@ logging.basicConfig(
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 linking_users = {}
-linked_users_file_name = "linked_users.json"
+linked_users_file_name = "telegram_linked_users.json"
 # LinkedUserJsonController
 lujc = LinkedUserJsonController(linked_users_file_name)
 
@@ -42,7 +42,7 @@ async def link(update: Update, context: ContextTypes.DEFAULT_TYPE):
     username = update.message.from_user.username
     chat_id = update.effective_chat.id
 
-    if lujc.find_linked_user(LinkedUserData(username, chat_id)):
+    if lujc.find_linked_user(LinkedUserData(username, username, chat_id)):
         await context.bot.send_message(
             chat_id = chat_id,
             text = "你已完成綁定"
@@ -71,7 +71,7 @@ async def link_check(update: Update, context: ContextTypes.DEFAULT_TYPE):
         link_check_obj.username == username and
         link_check_obj.chat_id == chat_id
     ):
-        if lujc.add_linked_user(LinkedUserData(username, chat_id)):
+        if lujc.add_linked_user(LinkedUserData(username, username, chat_id)):
             linking_users.pop(username, None)
             await context.bot.send_message(
                 chat_id = chat_id,
@@ -120,7 +120,7 @@ async def unlink(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # print(context.bot)
     username = update.message.from_user.username
     chat_id = update.effective_chat.id
-    linked_user_data = LinkedUserData(username, chat_id)
+    linked_user_data = LinkedUserData(username, username, chat_id)
     if lujc.find_linked_user(linked_user_data):
         if lujc.remove_linked_user(linked_user_data):
             await context.bot.send_message(
@@ -142,7 +142,7 @@ async def unlink(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def broadcast(message: str = "text"):
-    for linked_user in lujc.linked_users:
+    for linked_user in lujc.linked_users.values():
         await bot.send_message(
             chat_id = linked_user.chat_id,
             text = message
