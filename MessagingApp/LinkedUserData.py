@@ -47,7 +47,7 @@ class LinkedUserDataEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 class LinkedUserJsonController:
-    file_name: str =  "linked_users.json"
+    file_name: str = "linked_users.json"
     linked_users: list = []
 
     def __init__(self, file_name: str):
