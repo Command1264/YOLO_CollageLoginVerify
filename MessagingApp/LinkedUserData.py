@@ -23,8 +23,9 @@ class LinkCheck:
 
 @dataclass
 class LinkedUserData:
-    username: str = ""
-    chat_id: int = 0
+    user_id: str
+    username: str
+    chat_id: int
 
     def __jsonencode__(self):
         return {
@@ -35,6 +36,7 @@ class LinkedUserData:
     @staticmethod
     def from_dict(data):
         return LinkedUserData(
+            user_id = data["user_id"],
             username = data["username"],
             chat_id = data["chat_id"]
         )
@@ -51,7 +53,7 @@ class LinkedUserDataEncoder(json.JSONEncoder):
 @dataclass
 class LinkedUserJsonController:
     file_name: str = "linked_users.json"
-    linked_users: list = field(default_factory=list)
+    linked_users: dict[str, LinkedUserData] = field(default_factory=dict)
 
     def __post_init__(self):
         self.read_json()
@@ -61,9 +63,12 @@ class LinkedUserJsonController:
         with open(self.file_name, "r", encoding="utf-8") as f:
             # 讀取檔案內容
             try:
-                self.linked_users = [LinkedUserData.from_dict(raw_data) for raw_data in json.load(f)]
+                self.linked_users = {
+                    key: LinkedUserData.from_dict(raw_data)
+                    for key, raw_data in json.load(f).itmes()
+                }
             except json.JSONDecodeError:
-                self.linked_users = []
+                self.linked_users = dict()
 
     def __check_file_exists__(self):
         if not os.path.exists(self.file_name):
@@ -74,7 +79,7 @@ class LinkedUserJsonController:
         if self.find_linked_user(linked_user): return False
 
         with open(self.file_name, "w", encoding="utf-8") as f:
-            self.linked_users.append(linked_user)
+            self.linked_users[linked_user.user_id] = linked_user
 
             # f.seek(0)
             # 轉成 set，避免重複的 id 出現
@@ -95,7 +100,8 @@ class LinkedUserJsonController:
         with open(self.file_name, "w", encoding="utf-8") as f:
             linked_user = self.get_linked_user(linked_user)
             if linked_user is None: return False
-            self.linked_users.remove(linked_user)
+
+            self.linked_users.pop(linked_user.user_id, None)
 
             # f.seek(0)
             # 轉成 set，避免重複的 id 出現
@@ -110,16 +116,24 @@ class LinkedUserJsonController:
         return True
 
     def find_linked_user(self, linked_user: LinkedUserData) -> bool:
-        for entry in self.linked_users:
-            if (linked_user.username == entry.username and
-                    linked_user.chat_id == entry.chat_id):
-                # 當符合條件時返回
-                return True
-        return False  # 如果沒有符合條件的項目，返回 None
+        return (linked_user.user_id in self.linked_users and
+                linked_user in self.linked_users.values())
+
+
+
     def get_linked_user(self, linked_user: LinkedUserData) -> LinkedUserData | None:
-        for entry in self.linked_users:
-            if (linked_user.username == entry.username and
-                    linked_user.chat_id == entry.chat_id):
-                # 當符合條件時返回
-                return entry
-        return None  # 如果沒有符合條件的項目，返回 None
+        return self.linked_users.get(linked_user.user_id, None)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
