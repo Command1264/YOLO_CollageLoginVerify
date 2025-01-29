@@ -1,11 +1,15 @@
 import json, os, functools, random
+from dataclasses import dataclass, field
 
+
+@dataclass
 class LinkCheck:
+    username: str
+    chat_id: int
+    link_length: int = 6
     link: str = ""
-    def __init__(self, username, chat_id, link_length: int = 6):
-        self.username = username
-        self.chat_id = chat_id
-        self.link_length = link_length
+
+    def __post_init__(self):
         self.generate_link_number()
 
     def generate_link_number(self):
@@ -17,12 +21,10 @@ class LinkCheck:
             tmp_num = rand_lst[random.randint(0, len(rand_lst) - 1)]
             self.link += str(tmp_num)
 
+@dataclass
 class LinkedUserData:
     username: str = ""
     chat_id: int = 0
-    def __init__(self, username: str, chat_id: int):
-        self.username = username
-        self.chat_id = chat_id
 
     def __jsonencode__(self):
         return {
@@ -46,12 +48,12 @@ class LinkedUserDataEncoder(json.JSONEncoder):
             return list(obj)
         return json.JSONEncoder.default(self, obj)
 
+@dataclass
 class LinkedUserJsonController:
     file_name: str = "linked_users.json"
-    linked_users: list = []
+    linked_users: list = field(default_factory=list)
 
-    def __init__(self, file_name: str):
-        self.file_name = file_name
+    def __post_init__(self):
         self.read_json()
 
     def read_json(self):
