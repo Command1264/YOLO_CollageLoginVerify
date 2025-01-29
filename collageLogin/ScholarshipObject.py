@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import datetime
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class ScholarshipObject(object):
     index: int
     academic_year: int
@@ -13,7 +13,7 @@ class ScholarshipObject(object):
     dead_line: datetime.datetime
     money: int
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class ScholarshipApplyObject(object):
     index: int
     academic_year: int
