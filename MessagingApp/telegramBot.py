@@ -5,6 +5,8 @@ from telegram.ext import filters, MessageHandler, ApplicationBuilder, CommandHan
 import asyncio, signal, sys, os
 from LinkedUserData import *
 
+from dotenv import load_dotenv
+
 
 
 logging.basicConfig(
@@ -18,13 +20,8 @@ linked_users_file_name = "linked_users.json"
 # LinkedUserJsonController
 lujc = LinkedUserJsonController(linked_users_file_name)
 
-if os.path.exists("botToken.json"):
-    with open("botToken.json", "r", encoding="utf-8") as f:
-        token_dict = json.load(f)
-        token = token_dict["token"]
-else:
-    token = ""
-
+load_dotenv()
+token = os.getenv("telegramBotToken", "")
 
 # def init_data():
 
