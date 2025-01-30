@@ -29,6 +29,7 @@ class LinkedUserData:
 
     def __jsonencode__(self):
         return {
+            "user_id": self.user_id,
             "username": self.username,
             "chat_id": self.chat_id,
         }
@@ -46,8 +47,6 @@ class LinkedUserDataEncoder(json.JSONEncoder):
         if hasattr(obj, '__jsonencode__'):
             return obj.__jsonencode__()
 
-        if isinstance(obj, set):
-            return list(obj)
         return json.JSONEncoder.default(self, obj)
 
 @dataclass
@@ -65,7 +64,7 @@ class LinkedUserJsonController:
             try:
                 self.linked_users = {
                     key: LinkedUserData.from_dict(raw_data)
-                    for key, raw_data in json.load(f).itmes()
+                    for key, raw_data in json.load(f).items()
                 }
             except json.JSONDecodeError:
                 self.linked_users = dict()
