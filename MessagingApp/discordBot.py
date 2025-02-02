@@ -1,6 +1,7 @@
 import os
 import re
 import logging
+import logging.handlers
 import time
 from datetime import datetime
 
@@ -11,10 +12,28 @@ from discord.ext import commands, tasks
 
 from LinkedUserData import LinkedUserDataEncoder, LinkedUserJsonController, LinkedUserData, LinkCheck
 
+log_file_path = './logs/discord.log'
+parent_path = os.path.dirname(log_file_path)
+if not os.path.exists(parent_path):
+    os.makedirs(parent_path, exist_ok=True)
 
-# 禁用 discord.py 的默認 logger
-logging.getLogger("discord").handlers.clear()  # 清除所有 handler
-logging.getLogger("discord").setLevel(logging.CRITICAL)  # 僅允許關鍵訊息，實際等同於禁用
+logger = logging.getLogger('discord')
+logger.setLevel(logging.DEBUG)
+logging.getLogger('discord.http').setLevel(logging.INFO)
+
+
+
+handler = logging.handlers.RotatingFileHandler(
+    filename = './logs/discord.log',
+    encoding = 'utf-8',
+    maxBytes = 32 * 1024 * 1024,  # 32 MiB
+    backupCount = 5,  # Rotate through 5 files
+)
+dt_fmt = '%Y-%m-%d %H:%M:%S'
+formatter = logging.Formatter('[{asctime}] [{levelname:<8}] {name}: {message}', dt_fmt, style='{')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -168,4 +187,4 @@ async def update_time_status():
 if __name__ == "__main__":
     load_dotenv()
 
-    bot.run(os.getenv("discordBotToken", ""))
+    bot.run(os.getenv("discordBotToken", ""), log_handler = None)
