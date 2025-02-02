@@ -2,11 +2,12 @@ import os
 import re
 import logging
 import time
+from datetime import datetime
 
 from dotenv import load_dotenv
 
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 from LinkedUserData import LinkedUserDataEncoder, LinkedUserJsonController, LinkedUserData, LinkCheck
 
@@ -38,6 +39,7 @@ lujc = LinkedUserJsonController(linked_users_file_name)
 async def on_ready():
     print("初始化完成！")
     print(f'目前登入身份 --> {bot.user.name} : {bot.user}')
+    update_time_status.start()
 
 
 # help - 取得幫助
@@ -153,6 +155,15 @@ async def broadcast(message: str = "text"):
 
         except Exception as _:
             continue
+
+@tasks.loop(seconds = 10)
+async def update_time_status():
+    activity = discord.Activity(
+        type = discord.ActivityType.watching,
+        name = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    )
+    await bot.change_presence(activity=activity)
+    # print(f"Updated status to: {activity.name}")
 
 if __name__ == "__main__":
     load_dotenv()
