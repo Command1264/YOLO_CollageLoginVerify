@@ -15,4 +15,5 @@ test/
 .env
 *.json
 *.xlsx
+*.log
 教學
