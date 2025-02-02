@@ -290,6 +290,7 @@ class CYUTScholarships(CYUTLogin):
         rows = table_df.shape[0]
         cols = table_df.shape[1]
         # 如果 work_sheet 是 None，代表沒有創建過資料表
+        has_updated = False
         if worksheet is None:
             # 創建 sheet
             worksheet = spreadsheet.add_worksheet(
@@ -297,6 +298,7 @@ class CYUTScholarships(CYUTLogin):
                 rows = rows,
                 cols = cols,
             )
+            has_updated = True
         else:
             # 清除內容並重新寫入
             worksheet.clear()
@@ -304,6 +306,9 @@ class CYUTScholarships(CYUTLogin):
                 rows = rows,
                 cols = cols,
             )
+
+        if rows == 0 or cols == 0:
+            return True, has_updated
 
         # 更新資料至 Google Sheet
         worksheet.set_dataframe(
