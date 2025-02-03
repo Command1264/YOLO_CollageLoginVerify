@@ -175,7 +175,7 @@ async def broadcast(message: str = "text"):
         except Exception as _:
             continue
 
-@tasks.loop(seconds = 10)
+@tasks.loop(seconds = 60)
 async def update_time_status():
     activity = discord.Activity(
         type = discord.ActivityType.watching,
