@@ -3,7 +3,7 @@ import warnings
 import requests
 
 import pandas as pd
-import unicodedata, os, re
+import unicodedata, os, re, sys
 from dotenv import load_dotenv
 from pandas import DataFrame
 import numpy as np
@@ -18,6 +18,9 @@ from tqdm import tqdm
 import pygsheets
 from pygsheets import DataRange, HorizontalAlignment, FormatType, Worksheet, ValueRenderOption, Spreadsheet
 from pygsheets.client import Client
+
+collage_login_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'collageLogin'))
+sys.path.append(collage_login_path)
 
 from CYUTLogin import CYUTLogin
 from GoogleClientAuth import GoogleClientAuth, CertificateNotEnabledException

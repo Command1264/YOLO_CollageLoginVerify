@@ -1,5 +1,4 @@
-import os
-import re
+import os, re, sys
 import logging
 import logging.handlers
 import time
@@ -11,6 +10,10 @@ import discord
 from discord.ext import commands, tasks
 
 from LinkedUserData import LinkedUserDataEncoder, LinkedUserJsonController, LinkedUserData, LinkCheck
+
+collage_login_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'collageLogin'))
+sys.path.append(collage_login_path)
+
 from collageLogin.CYUTScholarships import CYUTScholarships
 
 log_file_path = './logs/discord.log'

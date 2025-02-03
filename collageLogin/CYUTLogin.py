@@ -1,7 +1,10 @@
-import requests, json, os, re
+import requests, json, os, re, sys
 from bs4 import BeautifulSoup
 from urllib import parse
 from dotenv import load_dotenv
+
+collage_login_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'collageLogin'))
+sys.path.append(collage_login_path)
 
 from CYUTLoginVerifyModel import CYUTLoginVerifyModel
 
