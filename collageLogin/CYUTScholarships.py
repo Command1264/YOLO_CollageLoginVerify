@@ -295,16 +295,16 @@ class CYUTScholarships(CYUTLogin):
             # 創建 sheet
             worksheet = spreadsheet.add_worksheet(
                 title = sheet_title,
-                rows = rows,
-                cols = cols,
+                rows = max(rows, 1),
+                cols = max(cols, 1),
             )
             has_updated = True
         else:
             # 清除內容並重新寫入
             worksheet.clear()
             worksheet.resize(
-                rows = rows,
-                cols = cols,
+                rows = max(rows, 1),
+                cols = max(cols, 1),
             )
 
         if rows == 0 or cols == 0:
