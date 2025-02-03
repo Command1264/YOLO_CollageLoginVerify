@@ -4,6 +4,7 @@ import logging.handlers
 import time
 from datetime import datetime
 
+from discord import Message
 from dotenv import load_dotenv
 
 import discord
@@ -181,14 +182,16 @@ async def unlink(context: discord.ext.commands.Context):
     # 如果找不到，代表沒綁定
     await context.send("你尚未綁定")
 
-async def broadcast(message: str = "text"):
+async def broadcast(message: str = "text") -> list[Message]:
+    messages = []
     for linked_user in lujc.linked_users.values():
         try:
-            await ((await bot.fetch_user(int(linked_user.user_id)))
-                   .send(message))
-
+            messages.append(await ((await bot.fetch_user(int(linked_user.user_id)))
+                                   .send(message)))
         except Exception as _:
             continue
+
+    return messages
 
 @tasks.loop(seconds = 60)
 async def update_time_status():
