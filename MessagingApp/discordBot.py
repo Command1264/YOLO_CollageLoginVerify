@@ -70,11 +70,17 @@ async def on_ready():
 
 @bot.command(name = "check")
 async def check_scholarships_update(context: discord.ext.commands.Context):
-
-    await context.send(f"check")
-    print(context.channel.id)
-    print(context.author.name)
-    print(context.author.id)
+    for title, (success, has_update) in [
+        ["校內外獎助學金", cyut_scholarships.load_scholarships()],
+        ["個人申請結果", cyut_scholarships.load_apply_scholarships()],
+    ]:
+        if success:
+            if has_update:
+                await context.send(f"{title} 上傳成功!")
+            else:
+                await context.send(f"{title} 沒有更新。")
+        else:
+            await context.send(f"{title} 上傳失敗！！！")
 
 @bot.command(name = "ping")
 async def ping(context: discord.ext.commands.Context):
