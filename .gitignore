@@ -16,4 +16,5 @@ test/
 *.json
 *.xlsx
 *.log
+logs
 教學
