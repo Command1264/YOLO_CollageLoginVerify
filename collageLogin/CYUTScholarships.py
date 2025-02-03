@@ -76,12 +76,16 @@ class CYUTScholarships(CYUTLogin):
         self.__gc = gc_auth.authorize_pygsheets()
 
 
-    def load_scholarships(self) -> (bool, bool):
+    def load_scholarships(self, try_count: int = 0) -> (bool, bool):
         self.check_certificate_enabled()
 
         if self.log: print(f"{self.__get_class_name()} load_scholarships")
 
-        if not self.login_success: return False, False
+        if not self.login_success:
+            if try_count < 3:
+                super().__init__(log = self.log)
+                return self.load_scholarships(try_count + 1)
+            return False, False
 
         url = f"{self.system_domain}/ST0075/"
         response = requests.get(
@@ -374,11 +378,16 @@ class CYUTScholarships(CYUTLogin):
         return True, True
 
 
-    def load_apply_scholarships(self) -> (bool, bool):
+    def load_apply_scholarships(self, try_count: int = 0) -> (bool, bool):
         self.check_certificate_enabled()
 
         if self.log: print(f"{self.__get_class_name()} load_apply_scholarships")
-        if not self.login_success: return False
+
+        if not self.login_success:
+            if try_count < 3:
+                super().__init__(log = self.log)
+                return self.load_scholarships(try_count + 1)
+            return False, False
 
         url = f"{self.system_domain}/ST0075/Apply"
         response = requests.get(
