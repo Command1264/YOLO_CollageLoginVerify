@@ -11,6 +11,7 @@ import discord
 from discord.ext import commands, tasks
 
 from LinkedUserData import LinkedUserDataEncoder, LinkedUserJsonController, LinkedUserData, LinkCheck
+from collageLogin.CYUTScholarships import CYUTScholarships
 
 log_file_path = './logs/discord.log'
 parent_path = os.path.dirname(log_file_path)
@@ -186,5 +187,6 @@ async def update_time_status():
 
 if __name__ == "__main__":
     load_dotenv()
+    cyut_scholarships = CYUTScholarships(log=True)
 
     bot.run(os.getenv("discordBotToken", ""), log_handler = None)
