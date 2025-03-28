@@ -14,6 +14,7 @@ yolo/testModel/
 test/
 .env
 *.json
+*.y[a]ml
 *.xlsx
 *.log
 logs
