@@ -13,6 +13,7 @@ class ServerNotConnectException(Exception):
     def __init__(self, message: str):
         super().__init__(message)
 
+# TODO 需寫出檢查登入狀態的程式
 class CYUTLogin:
     auth_domain = "https://auth2.cyut.edu.tw"
     system_domain = "https://student.cyut.edu.tw"
