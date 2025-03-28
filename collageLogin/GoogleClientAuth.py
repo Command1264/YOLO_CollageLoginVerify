@@ -35,16 +35,24 @@ class GoogleClientAuth:
 
         # 如果 token 檔案存在，嘗試讀取已保存的憑證
         if os.path.exists(self.token_file):
-            creds = Credentials.from_authorized_user_file(self.token_file, self.scopes)
+            try:
+                creds = Credentials.from_authorized_user_file(self.token_file, self.scopes)
+            except Exception as e:
+                print(f"讀取憑證檔案失敗: {e}")
+                creds = None
 
         # 如果憑證無效或不存在，進行新的驗證
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
+                try:
+                    creds.refresh(Request())
+                except Exception as e:
+                    print(f"憑證更新失敗: {e}")
+                    raise RuntimeError("無法自動更新憑證，請檢查網絡或憑證設置。")
             else:
                 if not os.path.isfile(self.oauth_file):
                     webbrowser.open("https://pygsheets.readthedocs.io/en/stable/authorization.html#oauth-credentials")
-                    return None
+                    raise CertificateNotEnabledException("OAuth 憑證檔案不存在，請下載並提供。")
                 flow = InstalledAppFlow.from_client_secrets_file(
                     self.oauth_file,
                     self.scopes
@@ -61,5 +69,6 @@ class GoogleClientAuth:
         # 使用憑證進行 pygsheets 授權
         gc = None
         creds = self.authenticate_oauth()
-        if creds is not None: gc = pygsheets.authorize(custom_credentials = creds)
+        if creds is not None:
+            gc = pygsheets.authorize(custom_credentials = creds)
         return gc
