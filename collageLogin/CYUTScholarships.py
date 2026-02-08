@@ -158,7 +158,7 @@ class CYUTScholarships(CYUTLogin):
         # 要在字數統計後，再將數值轉整數，不然無法統計數字
         general_table_df["金額"] = general_table_df["金額"].astype(dtype=np.int64)
 
-        # 取得超連結，並將其想入 DataFrame
+        # 取得超連結，並將其寫入 DataFrame
         for i, name in tqdm(enumerate(general_table_df.iloc[:, 3]),
                             desc="run google sheet hyperlink",
                             total=general_table_df.shape[0]):
