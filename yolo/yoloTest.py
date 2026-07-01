@@ -33,9 +33,12 @@ if __name__ == "__main__":
     for file_path in tqdm(file_paths, desc = "test Model", total = len(file_paths)):
         file_name = os.path.basename(file_path)
         file_name_without_ext = os.path.splitext(file_name)[0]  # 移除副檔名
+        image = cv.imread(file_path, 1)
+        if image is None:
+            continue
 
         verify_code = model.get_verify_code(
-            cv.imread(file_path, 1),
+            image,
             project = f"./testModel/{model_name}/{file_name_without_ext}",
             verbose = False
         )

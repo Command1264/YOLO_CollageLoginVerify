@@ -1,4 +1,4 @@
-from ultralytics import YOLO
+from ultralytics import YOLO  # pyright: ignore[reportPrivateImportUsage]
 import os
 
 if (__name__ == "__main__"):

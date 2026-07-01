@@ -18,20 +18,29 @@ from tqdm import tqdm
 import pygsheets
 from pygsheets import DataRange, HorizontalAlignment, FormatType, Worksheet, ValueRenderOption, Spreadsheet
 from pygsheets.client import Client
+from utils.app_paths import get_oauth_credentials_path, get_token_path, to_universal_path
 
 collage_login_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'collageLogin'))
 sys.path.append(collage_login_path)
+project_root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root_path not in sys.path:
+    sys.path.append(project_root_path)
 
-from CYUTLogin import CYUTLogin
-from GoogleClientAuth import GoogleClientAuth, CertificateNotEnabledException
-from GoogleSheetCellFormat import GoogleSheetFormat, SheetCellFormat, SheetNumberFormat
+try:
+    from .CYUTLogin import CYUTLogin
+    from .GoogleClientAuth import GoogleClientAuth, CertificateNotEnabledException
+    from .GoogleSheetCellFormat import GoogleSheetFormat, SheetCellFormat, SheetNumberFormat
+except ImportError:
+    from CYUTLogin import CYUTLogin
+    from GoogleClientAuth import GoogleClientAuth, CertificateNotEnabledException
+    from GoogleSheetCellFormat import GoogleSheetFormat, SheetCellFormat, SheetNumberFormat
 
 
 def calculate_column_width(text):
     return sum(2 if unicodedata.east_asian_width(t) in "FWA" else 1 for t in str(text))
 
 
-def calculate_column_width_with_title(data_frame: DataFrame) -> int:
+def calculate_column_width_with_title(data_frame: DataFrame | pd.Series | None) -> int:
     if data_frame is None: return -1
     return int(data_frame.apply(calculate_column_width).max())
 
@@ -39,7 +48,7 @@ def calculate_column_width_with_title(data_frame: DataFrame) -> int:
 class CYUTScholarships(CYUTLogin):
     log: bool = False
 
-    __gc: Client
+    __gc: Client | None
 
     @staticmethod
     def __get_class_name():
@@ -66,7 +75,9 @@ class CYUTScholarships(CYUTLogin):
         super().__init__(log = log)
         if self.log: f"{self.__get_class_name()} __init__"
         if client_secret_file is None:
-            client_secret_file = "./OAuthCredentials.json"
+            client_secret_file = to_universal_path(get_oauth_credentials_path())
+        if token_file is None:
+            token_file = to_universal_path(get_token_path())
 
         # 載入區域環境變數
         load_dotenv()
@@ -79,7 +90,7 @@ class CYUTScholarships(CYUTLogin):
         self.__gc = gc_auth.authorize_pygsheets()
 
 
-    def load_scholarships(self, try_count: int = 0) -> (bool, bool):
+    def load_scholarships(self, try_count: int = 0) -> tuple[bool, bool]:
         self.check_certificate_enabled()
 
         if self.log: print(f"{self.__get_class_name()} load_scholarships")
@@ -109,11 +120,17 @@ class CYUTScholarships(CYUTLogin):
             "id": "acy",
             "name": "acy",
         })
+        if academic_year_select is None:
+            return False, False
         academic_year_option = academic_year_select.find("option", {
             "selected": "selected",
         })
+        if academic_year_option is None:
+            return False, False
 
-        academic_year_value = academic_year_option["value"]
+        academic_year_value = str(academic_year_option.get("value", "")).strip()
+        if academic_year_value == "":
+            return False, False
         spreadsheet = self.__get_create_google_spreadsheet(academic_year_value)
 
         # 將主資料表獨立出來
@@ -177,8 +194,9 @@ class CYUTScholarships(CYUTLogin):
 
             for j in range(0, sub_df.shape[0]):
                 link = sub_df.iloc[j, 1]
-                if link and link.lower() != "nan":
-                    text = f'=HYPERLINK("{link}", "{name if (j == 0) else "LINK"}")'
+                link_text = str(link).strip()
+                if link_text != "" and link_text.lower() != "nan":
+                    text = f'=HYPERLINK("{link_text}", "{name if (j == 0) else "LINK"}")'
                     general_table_df.iloc[i, 3 + j] = text
 
         return self.__write_google_sheet(
@@ -232,10 +250,10 @@ class CYUTScholarships(CYUTLogin):
 
     def __check_google_sheet(
             self,
-            table_df: DataFrame = None,
+            table_df: DataFrame | None = None,
             spreadsheet: Spreadsheet | None = None,
             sheet_title: str = "學校資料",
-    ) -> (bool, Worksheet | None):
+    ) -> tuple[bool, Worksheet | None]:
         self.check_certificate_enabled()
 
         if self.log: print(f"{self.__get_class_name()} __check_google_sheet")
@@ -253,15 +271,21 @@ class CYUTScholarships(CYUTLogin):
         if sheet_title in [ws.title for ws in spreadsheet.worksheets()]:
             worksheet = spreadsheet.worksheet_by_title(sheet_title)
             # 使用公式的方式讀取出來，才能讀出 hyperlink，不然只有顯示文字
-            old_df = worksheet.get_as_df(
-                value_render = ValueRenderOption.FORMULA,
-            )
-            # 因為使用公式讀取的原因，所以日期需要從 excel 日期轉換成一般日期
-            if old_df.get("申請期限") is not None:
-                old_df["申請期限"] = old_df["申請期限"].apply(
-                    # timedelta -2 是為了修復 Excel 的 bug
-                    lambda __x : (datetime.datetime(1900, 1, 1) + datetime.timedelta(days=__x - 2)).strftime('%Y/%m/%d')
+            if worksheet is not None:
+                old_raw = worksheet.get_as_df(
+                    value_render = ValueRenderOption.FORMULA,
                 )
+                old_df = old_raw if isinstance(old_raw, DataFrame) else None
+                # 因為使用公式讀取的原因，所以日期需要從 excel 日期轉換成一般日期
+                if old_df is not None and old_df.get("申請期限") is not None:
+                    old_df["申請期限"] = old_df["申請期限"].apply(
+                        # timedelta -2 是為了修復 Excel 的 bug
+                        lambda __x : (
+                            (datetime.datetime(1900, 1, 1) + datetime.timedelta(days=float(__x) - 2)).strftime('%Y/%m/%d')
+                            if isinstance(__x, (int, float, np.integer, np.floating))
+                            else str(__x)
+                        )
+                    )
 
         # 如果資料相同，那就不用上傳資料，避免浪費
         if not old_df is None:
@@ -275,7 +299,7 @@ class CYUTScholarships(CYUTLogin):
             spreadsheet: Spreadsheet,
             sheet_format: GoogleSheetFormat,
             sheet_title: str = "學校資料"
-    ) -> (bool, bool):
+    ) -> tuple[bool, bool]:
         self.check_certificate_enabled()
 
         if self.log: print(f"{self.__get_class_name()} __write_google_sheet")
@@ -381,7 +405,7 @@ class CYUTScholarships(CYUTLogin):
         return True, True
 
 
-    def load_apply_scholarships(self, try_count: int = 0) -> (bool, bool):
+    def load_apply_scholarships(self, try_count: int = 0) -> tuple[bool, bool]:
         self.check_certificate_enabled()
 
         if self.log: print(f"{self.__get_class_name()} load_apply_scholarships")
@@ -411,11 +435,17 @@ class CYUTScholarships(CYUTLogin):
             "id": "acy",
             "name": "acy",
         })
+        if academic_year_select is None:
+            return False, False
         academic_year_option = academic_year_select.find("option", {
             "selected": "selected",
         })
+        if academic_year_option is None:
+            return False, False
 
-        academic_year_value = academic_year_option["value"]
+        academic_year_value = str(academic_year_option.get("value", "")).strip()
+        if academic_year_value == "":
+            return False, False
         spreadsheet = self.__get_create_google_spreadsheet(academic_year_value)
 
         # 將主資料表獨立出來
@@ -499,7 +529,10 @@ class CYUTScholarships(CYUTLogin):
         if spreadsheet is None:
             return False
         try:
-            self.__gc.drive.delete(file_id = spreadsheet.id)
+            gc = self.__gc
+            if gc is None:
+                return False
+            gc.drive.delete(file_id = spreadsheet.id)
             return True
         except Exception as e:
             print(e)
@@ -522,15 +555,18 @@ class CYUTScholarships(CYUTLogin):
 
         query = "mimeType='application/vnd.google-apps.spreadsheet' and trashed = false"
 
-        sheet_dict = self.__gc.drive.list(q = query)
+        gc = self.__gc
+        if gc is None:
+            raise CertificateNotEnabledException("Google 憑證沒有被正確啟用！")
+        sheet_dict = gc.drive.list(q = query)
         sheet_names = [file for file in sheet_dict if file["name"] == spread_sheet_name]
 
         # print(sheet_names)
         match len(sheet_names):
             case 0:
-                spreadsheet = self.__gc.create(spread_sheet_name)
+                spreadsheet = gc.create(spread_sheet_name)
             case 1:
-                spreadsheet = self.__gc.open_by_key(sheet_names[0]["id"])
+                spreadsheet = gc.open_by_key(sheet_names[0]["id"])
             case _:
                 raise FileExistsError("存在多個相同名稱 Google 表單，請檢查")
 

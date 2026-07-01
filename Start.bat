@@ -4,8 +4,7 @@
 cd /d %~dp0
 cls
 
-call conda activate YOLO_CollageLoginVerify
 cd collageLogin
-python CYUTScholarships.py
-timeout 10
-:: pause
+"..\CollageLoginEnv\Scripts\python.exe" CYUTScholarships.py
+:: timeout 10
+pause

@@ -13,6 +13,8 @@ for i in range(1000):
     oldPath = f"TrainingAndTestData/image-{i}-old.png"
     newPath = f"TrainingAndTestData/image-{i}.png"
     img = cv.imread(oldPath)
+    if img is None:
+        continue
 
     img = img[:, :img.shape[1] // 2]
     size = img.shape[0:2]

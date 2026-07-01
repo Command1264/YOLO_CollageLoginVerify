@@ -103,14 +103,16 @@ def change_display():
 
 def update_image(image_path):
     """將 OpenCV 圖片更新到 Tkinter 的 Label"""
-    # cv_image =
+    cv_image = cv.imread(image_path, 1)
+    if cv_image is None:
+        return
     # 將 OpenCV 圖片轉換為 PIL 格式
-    pil_image = Image.fromarray(cv.imread(image_path, 1))
+    pil_image = Image.fromarray(cv_image)
     tk_image = ImageTk.PhotoImage(pil_image.resize((320, 320)))
 
     # 更新 Label 的圖片
     image_label.config(image=tk_image)
-    image_label.image = tk_image  # 防止被垃圾回收
+    setattr(image_label, "image", tk_image)  # 防止被垃圾回收
 
 def set_edit_flag_and_save_button(b: bool = not edit_flag):
     global edit_flag, save_button

@@ -12,7 +12,7 @@ yolo/testModel/
 .git
 .idea
 test/
-.env
+*.env
 *.json
 *.y[a]ml
 *.xlsx
@@ -20,3 +20,4 @@ test/
 logs
 教學
 CollageLoginEnv
+CYUTScholarshipRadar

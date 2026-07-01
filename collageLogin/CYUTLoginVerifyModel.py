@@ -1,9 +1,14 @@
-from ultralytics import YOLO
+from ultralytics import YOLO  # pyright: ignore[reportPrivateImportUsage]
 import numpy as np
 import os, requests
 import cv2 as cv
 from io import BytesIO
 from PIL import Image
+from collections.abc import Sequence
+
+
+class VerifyModelNotFoundError(Exception):
+    """Raised when captcha verify model file does not exist."""
 
 
 def create_directory(path):
@@ -15,7 +20,7 @@ def calculate_area_with_xyxy(xyxy: list[float | int]) -> float:
 def calculate_area(w: float | int, h: float | int) -> float:
     return w * h
 
-def calculate_distance_square(ps1: list[float | int], ps2: list[float | int]) -> float:
+def calculate_distance_square(ps1: Sequence[float | int], ps2: Sequence[float | int]) -> float:
     if len(ps1) != len(ps2): return -1
     __sum = 0
     for p1, p2 in zip(ps1, ps2):
@@ -23,7 +28,7 @@ def calculate_distance_square(ps1: list[float | int], ps2: list[float | int]) ->
     return __sum
 
 
-def calculate_distance(ps1: list[float | int], ps2: list[float | int]) -> float:
+def calculate_distance(ps1: Sequence[float | int], ps2: Sequence[float | int]) -> float:
     return calculate_distance_square(ps1, ps2) ** 0.5
 
 
@@ -113,11 +118,9 @@ class CYUTLoginVerifyModel:
         self.log = log
 
     def set_model_path(self, model_path: str):
-        if os.path.isfile(model_path):
-            self.__model = YOLO(model_path)
-        else:
-            print("找不到模型，將使用 yolo11n")
-            self.__model = YOLO("yolo11n.pt")
+        if not os.path.isfile(model_path):
+            raise VerifyModelNotFoundError(f"驗證碼模型不存在: {model_path}")
+        self.__model = YOLO(model_path)
 
     def url_gif_get_verify_code(
             self,
@@ -205,6 +208,8 @@ class CYUTLoginVerifyModel:
         output_identify_image_path = f"{project}{output_identify_image_name}"
 
         if verbose is None: verbose = self.verbose
+        if self.__model is None:
+            return None
 
         results = self.__model.predict(
             source = source,
@@ -222,7 +227,10 @@ class CYUTLoginVerifyModel:
         name_dir = result.names
         numbers_lst = []
 
-        for box in result.boxes:
+        boxes = result.boxes
+        if boxes is None:
+            return None
+        for box in boxes:
             # 提取檢測到的物體的類別
             cls = box.cls
             # 提取檢測到的物體的信心分數
@@ -242,7 +250,7 @@ class CYUTLoginVerifyModel:
             ): continue
 
             numbers_lst.append([
-                name_dir[cls[0].item()],
+                name_dir[int(cls[0].item())],
                 box.xyxy[0].tolist(),
                 confidence.tolist()
             ])

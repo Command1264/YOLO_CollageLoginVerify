@@ -113,3 +113,8 @@ Guess the user's intent and thinking as much as possible, and propose actions yo
 ### GUI 開發規範
 - When implementing GUI-related components, use Traditional Chinese whenever possible.
 - 在實作 GUI 相關元件時，請盡可能使用繁體中文。
+
+### Python Type Check Rule
+### Python 型別檢查規範
+- If the task involves Python and any code changes are made, and Pyright is available, run Pyright and fix all reported errors.
+- 如果是 Python 語言，在進行任意更改後，若有 Pyright，請執行 Pyright 檢查並修正 Pyright 回報的所有錯誤。

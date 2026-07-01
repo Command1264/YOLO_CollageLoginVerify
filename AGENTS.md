@@ -4,7 +4,7 @@ When you read this file, re-read `workflow/SYSTEM.md` and follow it, even if it 
 讀到這裡時，不論 `workflow/SYSTEM.md` 是否有更新，都要重新讀取一次並且遵守
 
 # Project Overview (English)
-This project trains and validates YOLO models to detect fire and smoke.
+This project uses YOLO to recognize school verification codes, logs into the student system to retrieve scholarship data, uploads the consolidated results to Google Sheets, and displays update differences.
 
 ## Tech Stack
 - Python 3.10.16
@@ -96,7 +96,7 @@ async def get_user_profile(user_id: int) -> User:
 ---
 
 # 專案概述（繁體中文）
-這是一個 YOLO 訓練與驗證專案，用於偵測火焰與煙霧。
+這是一個使用 YOLO 辨識學校驗證碼，並且登入進去取得獎助學金，統整後再上傳到 Google Sheet，並且做顯示更新差異的專案
 
 ## 技術棧
 - Python 3.10.16

@@ -2,11 +2,21 @@ import requests, json, os, re, sys
 from bs4 import BeautifulSoup
 from urllib import parse
 from dotenv import load_dotenv
+from pathlib import Path
+from typing import Any
 
 collage_login_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'collageLogin'))
 sys.path.append(collage_login_path)
+project_root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root_path not in sys.path:
+    sys.path.append(project_root_path)
 
-from CYUTLoginVerifyModel import CYUTLoginVerifyModel
+from utils.app_paths import get_app_data_dir, get_cookies_path, get_runtime_base_dir, to_universal_path
+from utils.verify_model_provider import get_shared_verify_model, get_shared_verify_model_lock
+try:
+    from .CYUTLoginVerifyModel import CYUTLoginVerifyModel
+except ImportError:
+    from CYUTLoginVerifyModel import CYUTLoginVerifyModel
 
 
 class ServerNotConnectException(Exception):
@@ -25,10 +35,10 @@ class CYUTLogin:
         'Connection': 'keep-alive',
     }
 
-    cookies_file_path = f"cyutLoginCookies.json"
+    cookies_file_path = to_universal_path(get_cookies_path())
     cookies = {}
 
-    account: dict[str: str | None]
+    account: dict[str, str | None]
 
     login_tmp_cookie = None
     img_url = None
@@ -38,6 +48,7 @@ class CYUTLogin:
     verbose: bool
     try_count: int
     model: CYUTLoginVerifyModel
+    model_lock: Any
 
     @staticmethod
     def __get_class_name():
@@ -48,21 +59,54 @@ class CYUTLogin:
         log: bool = False,
         verbose: bool = False,
         try_count: int = 3,
-        model_path: str = "../yolo/yoloSuccessCore/YOLO11x-google-best.pt",
+        model_path: str | None = None,
     ):
         self.log = log
         self.verbose = verbose
         self.try_count = try_count
-        self.model = CYUTLoginVerifyModel(model_path, self.verbose)
+        model_name = "YOLO11x-google-best.pt"
+        runtime_model_candidates: list[Path] = []
+        if getattr(sys, "frozen", False):
+            exe_dir = Path(sys.executable).resolve().parent
+            mei_root = getattr(sys, "_MEIPASS", "")
+            if mei_root:
+                runtime_model_candidates.append(Path(str(mei_root)).resolve() / "model" / model_name)
+            runtime_model_candidates.append(exe_dir / "_internal" / "model" / model_name)
+            runtime_model_candidates.append(exe_dir / "model" / model_name)
+        else:
+            script_dir = Path(__file__).resolve().parents[1] / "UI"
+            runtime_model_candidates.append(script_dir / "CYUTScholarshipRadar" / "model" / model_name)
+            runtime_model_candidates.append(Path(__file__).resolve().parents[1] / "model" / model_name)
+        runtime_default_model = runtime_model_candidates[0]
+        for candidate in runtime_model_candidates:
+            if candidate.is_file():
+                runtime_default_model = candidate
+                break
+        legacy_default_model = (
+            Path(__file__).resolve().parents[1] /
+            "yolo" /
+            "yoloSuccessCore" /
+            "YOLO11x-google-best.pt"
+        )
+        configured_model_path = (model_path or "").strip()
+        env_model_path = os.getenv("CYUT_VERIFY_MODEL_PATH", "").strip()
+        selected_model_path = configured_model_path or env_model_path or to_universal_path(runtime_default_model)
+        selected_model_file = Path(selected_model_path)
+        if (not selected_model_file.is_file()) and legacy_default_model.is_file():
+            selected_model_path = to_universal_path(legacy_default_model)
+        self.model = get_shared_verify_model(selected_model_path)
+        self.model_lock = get_shared_verify_model_lock()
 
         if self.log: print(f"{self.__get_class_name()} __init__")
 
         # 載入區域環境變數
         load_dotenv()
+        self.cookies_file_path = to_universal_path(get_cookies_path())
+        Path(self.cookies_file_path).parent.mkdir(parents = True, exist_ok = True)
         # 從環境變數載入帳號密碼
         self.account = {
-            "account": os.getenv("account", None),
-            "password": os.getenv("password", None)
+            "account": os.getenv("CYUT_LOGIN_ACCOUNT", None) or os.getenv("account", None),
+            "password": os.getenv("CYUT_LOGIN_PASSWORD", None) or os.getenv("password", None)
         }
 
         # 檢查登入帳號密碼
@@ -118,7 +162,8 @@ class CYUTLogin:
                 self.login_tmp_cookie = item.get("value")
                 break
 
-        self.img_url = self.auth_domain + img['src']
+        img_src = str(img.get("src", "")).strip()
+        self.img_url = f"{self.auth_domain}{img_src}"
 
         self.save_cookies()
 
@@ -138,14 +183,15 @@ class CYUTLogin:
             return self.re_login(try_count = try_count + 1)
 
         # YOLO 判斷驗證碼
-        verify_code = self.model.url_gif_get_verify_code(
-            url = self.img_url,
-            cookies = self.cookies,
-            show = False,
-            save = False,
-            verbose = self.verbose,
-            log = self.log
-        )
+        with self.model_lock:
+            verify_code = self.model.url_gif_get_verify_code(
+                url = self.img_url,
+                cookies = self.cookies,
+                show = False,
+                save = False,
+                verbose = self.verbose,
+                log = self.log
+            )
         if verify_code is None:
             return self.re_login(try_count = try_count + 1)
 
@@ -154,7 +200,7 @@ class CYUTLogin:
             "__RequestVerificationToken": self.login_tmp_cookie,
             "ReturnUrl": "",
             "Account": self.account["account"],
-            "Password": parse.quote(self.account["password"]),
+            "Password": parse.quote(str(self.account["password"] or "")),
             "VerificationCode": verify_code
         }
 
@@ -234,9 +280,9 @@ class CYUTLogin:
             name: str,
             domain,
             response,
-            headers = None,
-            cookies: dict = None,
-            data: dict = None,
+            headers: dict | None = None,
+            cookies: dict | None = None,
+            data: dict | None = None,
             status_code: int = 200,
 
     ) -> requests.Response | None:
@@ -270,11 +316,13 @@ class CYUTLogin:
         if try_count >= self.try_count: return False
         url = f"{self.system_domain}/ST0000"
 
+        request_headers = dict(self.headers)
+        request_headers.update({
+            "Origin": self.system_domain,
+        })
         response = requests.get(
             url,
-            headers = self.headers.update({
-                "Origin": self.system_domain,
-            }),
+            headers = request_headers,
             cookies = self.cookies,
             allow_redirects = False
         )
@@ -300,11 +348,11 @@ class CYUTLogin:
         return True
 
     # 儲存網頁 cookies，用於下次登入
-    def save_cookies(self, cookies: dict = None):
+    def save_cookies(self, cookies: dict | None = None):
         if self.log: print(f"{self.__get_class_name()} save_cookies")
 
         if cookies is not None: self.cookies.update(cookies)
-        with open(self.cookies_file_path, "w") as file:
+        with open(self.cookies_file_path, "w", encoding = "utf-8") as file:
             file.write(json.dumps(self.cookies, indent = 4))
 
     # 載入 cookies
@@ -312,7 +360,7 @@ class CYUTLogin:
         if self.log: print(f"{self.__get_class_name()} load_cookies")
 
         if not os.path.isfile(self.cookies_file_path): return False
-        with open(self.cookies_file_path, "r") as file:
+        with open(self.cookies_file_path, "r", encoding = "utf-8") as file:
             self.cookies = json.load(fp = file)
             self.cookies["culture"] = "zh-TW"
         return True

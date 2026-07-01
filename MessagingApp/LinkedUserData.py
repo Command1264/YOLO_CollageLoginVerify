@@ -43,11 +43,11 @@ class LinkedUserData:
         )
 
 class LinkedUserDataEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if hasattr(obj, '__jsonencode__'):
-            return obj.__jsonencode__()
+    def default(self, o):
+        if hasattr(o, '__jsonencode__'):
+            return o.__jsonencode__()
 
-        return json.JSONEncoder.default(self, obj)
+        return json.JSONEncoder.default(self, o)
 
 @dataclass
 class LinkedUserJsonController:
@@ -70,6 +70,9 @@ class LinkedUserJsonController:
                 self.linked_users = dict()
 
     def __check_file_exists__(self):
+        parent_dir = os.path.dirname(self.file_name)
+        if parent_dir:
+            os.makedirs(parent_dir, exist_ok = True)
         if not os.path.exists(self.file_name):
             with open(self.file_name, "x", encoding="utf-8"): pass
 
@@ -97,10 +100,10 @@ class LinkedUserJsonController:
         if not self.find_linked_user(linked_user): return False
 
         with open(self.file_name, "w", encoding="utf-8") as f:
-            linked_user = self.get_linked_user(linked_user)
-            if linked_user is None: return False
+            existing_user = self.get_linked_user(linked_user)
+            if existing_user is None: return False
 
-            self.linked_users.pop(linked_user.user_id, None)
+            self.linked_users.pop(existing_user.user_id, None)
 
             # f.seek(0)
             # 轉成 set，避免重複的 id 出現

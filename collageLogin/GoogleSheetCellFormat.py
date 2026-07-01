@@ -14,16 +14,16 @@ class SheetNumberFormat:
 
 class SheetCellFormat:
     format_range: str
-    text_format: dict[str, Any]
-    horizontal_alignment: HorizontalAlignment
-    number_format: SheetNumberFormat
+    text_format: dict[str, Any] | None
+    horizontal_alignment: HorizontalAlignment | None
+    number_format: SheetNumberFormat | None
 
     def __init__(
             self,
             format_range: str,
-            text_format: dict[str, Any] = None,
-            horizontal_alignment: HorizontalAlignment = None,
-            number_format: SheetNumberFormat = None,
+            text_format: dict[str, Any] | None = None,
+            horizontal_alignment: HorizontalAlignment | None = None,
+            number_format: SheetNumberFormat | None = None,
     ):
         self.format_range = format_range
         self.text_format = text_format

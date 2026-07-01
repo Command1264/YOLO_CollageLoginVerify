@@ -14,6 +14,8 @@ if __name__ == "__main__":
 
     # for i in range(1, 100, 10):
     img = cv.imread(image_path)
+    if img is None:
+        raise FileNotFoundError(f"Image not found: {image_path}")
     print(img.shape)
     new_img = sharpen(img, sigma = 20)
     print(new_img.shape)
